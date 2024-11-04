@@ -5,6 +5,7 @@ interface GoodsItem {
   price: number;
   quantity: number;
   settlePrice: number;
+  desc?: string;
 }
 
 export interface Order {
