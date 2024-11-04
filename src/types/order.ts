@@ -9,6 +9,7 @@ interface GoodsItem {
 
 export interface Order {
   _id: string;
+  _openid: string;
   orderNo: string;
   orderStatus: number;
   payStatus: string;
@@ -19,4 +20,5 @@ export interface Order {
   receiverPhone: string;
   receiverAddress: string;
   goodsList: GoodsItem[];
+  userStoreName?: string;
 } 
