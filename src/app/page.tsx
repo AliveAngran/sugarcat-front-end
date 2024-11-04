@@ -8,6 +8,25 @@ const formatMoney = (amount: number) => {
   return (amount / 100).toFixed(2);
 };
 
+// 修改时间格式化函数
+const formatDate = (dateStr: string) => {
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Shanghai'
+    });
+  } catch (error) {
+    console.error('时间格式化错误:', error);
+    return '时间格式错误';
+  }
+};
+
 function OrderList() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +134,9 @@ function OrderList() {
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-medium text-green-600">¥{formatMoney(order.paymentAmount)}</div>
-                    <div className="text-sm text-gray-500">时间未知</div>
+                    <div className="text-sm text-gray-500">
+                      {formatDate(order.createTime)}
+                    </div>
                   </div>
                 </div>
 
