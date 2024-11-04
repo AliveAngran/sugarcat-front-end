@@ -65,7 +65,7 @@ function OrderList() {
           .orderBy('createTime', 'desc')
           .limit(100)
           .get()
-          .catch(err => {
+          .catch((err: any) => {
             throw new Error(`数据库查询失败: ${err.message}`);
           });
         
