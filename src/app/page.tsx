@@ -27,6 +27,11 @@ const formatDate = (dateStr: string) => {
   }
 };
 
+type User = {
+  userStoreName: string;
+  // 其他属性...
+};
+
 function OrderList() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +71,7 @@ function OrderList() {
         
         if (userResult && userResult.data && userResult.data.length > 0) {
           // 打印所有用户的商店名称
-          userResult.data.forEach((user, index) => {
+          userResult.data.forEach((user: User, index) => {
             console.log(`第${index + 1}个用户的商店名称:`, user.userStoreName);
           });
         } else {
@@ -103,11 +108,10 @@ function OrderList() {
           throw new Error('返回数据格式异常');
         }
         
-        // 获取每个订单的店家名
-        const ordersWithStoreName = await Promise.all(result.data.map(async (order: any) => {
+        // 获取每个订单的店家名和商品描述
+        const ordersWithDetails = await Promise.all(result.data.map(async (order: any) => {
           try {
-            // 先打印一下要查询的 openid
-            
+            // 获取用户商店名称
             const userResult = await database
               .collection('users')
               .where({
@@ -115,29 +119,43 @@ function OrderList() {
               })
               .get();
 
-            // 打印完整的查询结果
-            console.log('完整的用户查询结果:', userResult);
-            
-            // 如果查询成功但没有数据，打印提示
-            if (userResult.data && userResult.data.length === 0) {
-              console.log('未找到该 openid 对应的用户数据');
-            }
-            
-            if (userResult.data && userResult.data.length > 0) {
-              return { 
-                ...order, 
-                userStoreName: userResult.data[0].userStoreName || '未知店家'
-              };
-            } else {
-              return { ...order, userStoreName: '未知店家' };
-            }
+            const userStoreName = userResult.data && userResult.data.length > 0 
+              ? userResult.data[0].userStoreName || '未知店家'
+              : '未知店家';
+
+            // 获取商品描述
+            const goodsWithDesc = await Promise.all(order.goodsList.map(async (goods: any) => {
+              try {
+                const spuResult = await database
+                  .collection('spu_db')
+                  .where({
+                    'spuId': goods.spuId
+                  })
+                  .get();
+
+                const spuDesc = spuResult.data && spuResult.data.length > 0 
+                  ? spuResult.data[0].desc || '无描述'
+                  : '无描述';
+
+                return { ...goods, desc: spuDesc };
+              } catch (err) {
+                console.error(`获取商品 ${goods.spuId} 描述失败:`, err);
+                return { ...goods, desc: '无描述' };
+              }
+            }));
+
+            return { 
+              ...order, 
+              userStoreName,
+              goodsList: goodsWithDesc
+            };
           } catch (err) {
-            console.error(`获取用户 ${order._openid} 信息失败:`, err);
-            return { ...order, userStoreName: '未知店家' };
+            console.error(`获取订单 ${order._id} 详情失败:`, err);
+            return { ...order, userStoreName: '未知店家', goodsList: order.goodsList };
           }
         }));
 
-        setOrders(ordersWithStoreName);
+        setOrders(ordersWithDetails);
         setError(null);
       } catch (err) {
         console.error('获取订单失败:', err);
@@ -214,18 +232,26 @@ function OrderList() {
 
               {/* 展开的商品列表 */}
               {expandedOrders.has(order._id) && (
-                <div className="mt-4 space-y-3 p-4 bg-gray-100 rounded-lg">
-                  {order.goodsList.map((goods, index) => (
-                    <div 
-                      key={goods.spuId} 
-                      className={`flex justify-between items-center ${index !== order.goodsList.length - 1 ? 'border-b border-gray-300' : ''} py-2`}
-                    >
-                      <span className="flex-1 text-gray-900">{goods.goodsName}</span>
-                      <span className="w-16 text-center text-gray-500">× {goods.quantity}</span>
-                      <span className="text-gray-900">¥{formatMoney(goods.price * goods.quantity)}</span>
-                    </div>
-                  ))}
-                </div>
+                <table className="mt-4 w-full bg-gray-100 rounded-lg">
+                  <thead>
+                    <tr className="border-b border-gray-300">
+                      <th className="py-3 px-4 text-left text-gray-900">商品名称</th>
+                      <th className="py-3 px-4 text-center text-gray-900">数量</th>
+                      <th className="py-3 px-4 text-left text-gray-900">描述</th>
+                      <th className="py-3 px-4 text-right text-gray-900">价格</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {order.goodsList.map((goods, index) => (
+                      <tr key={goods.spuId} className="border-b border-gray-300">
+                        <td className="py-2 text-gray-900">{goods.goodsName}</td>
+                        <td className="py-2 text-center text-gray-500">× {goods.quantity}</td>
+                        <td className="py-2 text-gray-500">{goods.desc}</td>
+                        <td className="py-2 text-right text-gray-900">¥{formatMoney(goods.price * goods.quantity)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
           ))}
