@@ -48,25 +48,41 @@ function OrderList() {
   useEffect(() => {
     const fetchOrders = async () => {
       if (!db) {
-        setError('数据库连接未初始化');
+        setError('数据库连接未初始化，请检查环境变量配置');
         setLoading(false);
         return;
       }
 
       try {
         console.log('开始获取订单数据...');
+        console.log('环境变量检查:', {
+          envId: "tangmao-6ga5x8ct393e0fe9",
+          region: "ap-shanghai"
+        });
+        
         const result = await db
           .collection('orders')
           .orderBy('createTime', 'desc')
           .limit(100)
-          .get();
+          .get()
+          .catch(err => {
+            throw new Error(`数据库查询失败: ${err.message}`);
+          });
+        
+        if (!result || !result.data) {
+          throw new Error('返回数据格式异常');
+        }
         
         console.log('获取到的数据:', result);
         setOrders(result.data);
         setError(null);
       } catch (err) {
         console.error('获取订单失败:', err);
-        setError(err instanceof Error ? err.message : '获取数据失败');
+        setError(
+          err instanceof Error 
+            ? `获取数据失败: ${err.message}` 
+            : '获取数据失败，请检查网络连接和环境配置'
+        );
       } finally {
         setLoading(false);
       }
