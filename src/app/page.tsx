@@ -71,7 +71,7 @@ function OrderList() {
         
         if (userResult && userResult.data && userResult.data.length > 0) {
           // 打印所有用户的商店名称
-          userResult.data.forEach((user: User, index) => {
+          userResult.data.forEach((user: User, index: number) => {
             console.log(`第${index + 1}个用户的商店名称:`, user.userStoreName);
           });
         } else {
@@ -236,8 +236,9 @@ function OrderList() {
                   <thead>
                     <tr className="border-b border-gray-300">
                       <th className="py-3 px-4 text-left text-gray-900">商品名称</th>
-                      <th className="py-3 px-4 text-center text-gray-900">数量</th>
                       <th className="py-3 px-4 text-left text-gray-900">描述</th>
+                      <th className="py-3 px-4 text-center text-gray-900">数量</th>
+
                       <th className="py-3 px-4 text-right text-gray-900">价格</th>
                     </tr>
                   </thead>
