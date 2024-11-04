@@ -135,7 +135,7 @@ function OrderList() {
                   <div className="text-right">
                     <div className="text-lg font-medium text-green-600">¥{formatMoney(order.paymentAmount)}</div>
                     <div className="text-sm text-gray-500">
-                      {formatDate(order.createTime)}
+                      {formatDate(String(order.createTime))}
                     </div>
                   </div>
                 </div>
