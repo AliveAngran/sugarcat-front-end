@@ -5,14 +5,21 @@ export async function POST(request: Request) {
   try {
     const product = await request.json();
     
-    // 使用管理员权限的 SDK
+    if (!product._id) {
+      return NextResponse.json({ 
+        success: false, 
+        error: '商品ID不能为空' 
+      }, { status: 400 });
+    }
+
     const db = cloudbase.database();
     
-    // 更新商品信息
+    // 更新商品信息，包含所有可编辑字段
     await db.collection('spu_db')
       .doc(product._id)
       .update({
         title: product.title,
+        etitle: product.etitle,
         price: product.price,
         originPrice: product.originPrice,
         desc: product.desc,
@@ -21,11 +28,20 @@ export async function POST(request: Request) {
         shelfLife: product.shelfLife,
         origin: product.origin,
         brand: product.brand,
+        primaryImage: product.primaryImage,
+        images: product.images,
+        available: product.available,
+        isPutOnSale: product.isPutOnSale,
+        buyAtMultipleTimes: product.buyAtMultipleTimes,
+        updateTime: new Date()
       });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('更新商品失败:', error);
-    return NextResponse.json({ success: false, error: '更新失败' }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      error: '更新失败' 
+    }, { status: 500 });
   }
 } 
