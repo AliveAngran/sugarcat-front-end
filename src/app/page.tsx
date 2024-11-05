@@ -97,6 +97,8 @@ function OrderList() {
   const [accessKey, setAccessKey] = useState<string>('');
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [exporting, setExporting] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
 
   const correctAccessKey = 'chaodan'; // 设定正确的访问密钥
 
@@ -292,25 +294,40 @@ function OrderList() {
     }
   };
 
-  const exportToPDF = async () => {
-    if (!confirm('确认导出所有订单数据？')) return;
+  const toggleSelectMode = () => {
+    setSelectMode(!selectMode);
+    setSelectedOrders(new Set());
+  };
+
+  const toggleSelectOrder = (orderId: string) => {
+    setSelectedOrders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  const exportToPDF = async (selectedOnly: boolean = false) => {
+    if (!confirm('确认导出所选订单数据？')) return;
     
     setExporting(true);
     try {
       const element = document.getElementById('orders-container');
       if (!element) return;
 
-      // 展开所有订单
-      const allOrderIds = orders.map(order => order._id);
-      setExpandedOrders(new Set(allOrderIds));
+      // 检查是否有选中的订单
+      if (selectedOnly && selectedOrders.size === 0) {
+        alert('请先选择要导出的订单');
+        return;
+      }
 
-      // 等待DOM更新和图片加载完成
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // A4纸的尺寸（以毫米为单位）
-      const A4_WIDTH_MM = 210;
-      const A4_HEIGHT_MM = 297;
-      const MARGIN_MM = 10;
+      // 获取所有订单元素
+      const orderElements = element.querySelectorAll('.order-item');
+      let isFirstPage = true;
 
       // 创建PDF文档
       const pdf = new jsPDF({
@@ -319,16 +336,31 @@ function OrderList() {
         format: 'a4'
       });
 
-      // 获取所有订单元素
-      const orderElements = element.querySelectorAll('.order-item');
-      let isFirstPage = true;
+      // A4纸的尺寸（以毫米为单位）
+      const A4_WIDTH_MM = 210;
+      const A4_HEIGHT_MM = 297;
+      const MARGIN_MM = 10;
 
       // 逐个处理订单
       for (let i = 0; i < orderElements.length; i++) {
-        const orderElement = orderElements[i];
+        const orderElement = orderElements[i] as HTMLElement;
+        const orderId = orderElement.getAttribute('data-order-id');
+        
+        // 如果是选择导出模式，跳过未选中的订单
+        if (selectedOnly && (!orderId || !selectedOrders.has(orderId))) {
+          continue;
+        }
+
+        // 临时展开当前订单
+        if (orderId) {
+          setExpandedOrders(prev => new Set([...prev, orderId]));
+        }
+        
+        // 等待DOM更新
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // 为每个订单创建画布
-        const canvas = await html2canvas(orderElement as HTMLElement, {
+        const canvas = await html2canvas(orderElement, {
           scale: 2,
           useCORS: true,
           logging: false,
@@ -358,18 +390,29 @@ function OrderList() {
           '',
           'FAST'
         );
+
+        // 恢复订单折叠状态
+        if (orderId) {
+          setExpandedOrders(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(orderId);
+            return newSet;
+          });
+        }
       }
 
       // 保存PDF
       pdf.save(`订单列表_${new Date().toLocaleDateString()}.pdf`);
 
-      // 恢复原始展开状态
-      setExpandedOrders(new Set());
     } catch (error) {
       console.error('PDF导出失败:', error);
       alert('PDF导出失败，请重试');
     } finally {
       setExporting(false);
+      if (selectedOnly) {
+        setSelectMode(false);
+        setSelectedOrders(new Set());
+      }
     }
   };
 
@@ -422,30 +465,68 @@ function OrderList() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+      <div className="container mx-auto px-2 py-4">
+        <div className="flex justify-between items-center mb-4">
           <h1 className="text-4xl font-bold text-gray-800">订单列表</h1>
-          <button
-            onClick={exportToPDF}
-            disabled={exporting}
-            className="bg-green-600 text-white rounded-lg px-6 py-2 hover:bg-green-700 transition duration-200 disabled:bg-gray-400"
-          >
-            {exporting ? '导出中...' : '导出PDF'}
-          </button>
+          <div className="space-x-4">
+            <button
+              onClick={toggleSelectMode}
+              className={`px-6 py-2 rounded-lg transition duration-200 ${
+                selectMode 
+                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              {selectMode ? '取消选择' : '选择订单'}
+            </button>
+            {selectMode && (
+              <button
+                onClick={() => exportToPDF(true)}
+                disabled={exporting || selectedOrders.size === 0}
+                className="bg-green-600 text-white rounded-lg px-6 py-2 hover:bg-green-700 transition duration-200 disabled:bg-gray-400"
+              >
+                {exporting ? '导出中...' : `导出所选(${selectedOrders.size})`}
+              </button>
+            )}
+            {!selectMode && (
+              <button
+                onClick={() => exportToPDF(false)}
+                disabled={exporting}
+                className="bg-green-600 text-white rounded-lg px-6 py-2 hover:bg-green-700 transition duration-200 disabled:bg-gray-400"
+              >
+                {exporting ? '导出中...' : '导出全部'}
+              </button>
+            )}
+          </div>
         </div>
 
-        <div id="orders-container" className="space-y-4 print:space-y-8">
+        <div id="orders-container" className="space-y-2 print:space-y-8">
           {orders.map((order, index) => (
             <div 
               key={order._id}
+              data-order-id={order._id}
               className={`
                 order-item
-                bg-white rounded-lg shadow-md p-6 border border-gray-300 
+                bg-white rounded-lg shadow-md p-4 border border-gray-300 
                 print:break-inside-avoid-page 
                 print:mb-8
                 ${order.orderStatus === 80 ? 'bg-gray-100' : ''}
+                ${selectMode ? 'cursor-pointer' : ''}
+                ${selectMode && selectedOrders.has(order._id) ? 'ring-2 ring-blue-500' : ''}
               `}
+              onClick={() => selectMode && toggleSelectOrder(order._id)}
             >
+              {selectMode && (
+                <div className="absolute top-4 right-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedOrders.has(order._id)}
+                    onChange={() => toggleSelectOrder(order._id)}
+                    className="w-5 h-5 text-blue-600"
+                    onClick={e => e.stopPropagation()}
+                  />
+                </div>
+              )}
               <div className="flex justify-between items-center mb-4">
                 <span className="text-gray-900 text-lg font-semibold"> {orders.length - index}. 订单号: {order.orderNo}</span>
                 <span className={`px-3 py-1 text-sm rounded-full ${getOrderStatusStyle(order.orderStatus)}`}>
