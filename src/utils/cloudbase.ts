@@ -6,15 +6,12 @@ let db: any = null;
 let dbPromise: Promise<any>;
 
 if (typeof window !== 'undefined') {
-  const app = cloudbase.init({
+  const config = {
     env: "tangmao-6ga5x8ct393e0fe9",
-    region: "ap-shanghai",
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type,Authorization'
-    }
-  });
+    region: "ap-shanghai"
+  };
+
+  const app = cloudbase.init(config);
 
   const auth = app.auth({
     persistence: "local"

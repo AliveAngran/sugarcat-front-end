@@ -353,7 +353,11 @@ function OrderList() {
 
         // 临时展开当前订单
         if (orderId) {
-          setExpandedOrders(prev => new Set([...prev, orderId]));
+          setExpandedOrders(prev => {
+            const newSet = new Set(prev);
+            newSet.add(orderId);
+            return newSet;
+          });
         }
         
         // 等待DOM更新
