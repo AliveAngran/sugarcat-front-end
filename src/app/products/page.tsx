@@ -34,6 +34,31 @@ interface EditingProduct extends Product {
   // 不需要再定义 _id，因为已经在 Product 中定义了
 }
 
+// 添加品牌分组和排序的工具函数
+const getPinyinInitial = (brand: string): string => {
+  // 简单处理：如果是字母开头就返回首字母，否则归类到 "#" 组
+  const first = brand.charAt(0).toUpperCase();
+  return /[A-Z]/.test(first) ? first : '#';
+};
+
+const groupBrandsByInitial = (brands: Set<string>): Map<string, string[]> => {
+  const groups = new Map<string, string[]>();
+  
+  // 将品牌按首字母分组
+  Array.from(brands).forEach(brand => {
+    const initial = getPinyinInitial(brand);
+    if (!groups.has(initial)) {
+      groups.set(initial, []);
+    }
+    groups.get(initial)?.push(brand);
+  });
+  
+  // 返回排序后的 Map
+  return new Map(
+    Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+  );
+};
+
 function ProductManagement() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,31 +133,64 @@ function ProductManagement() {
     }
   };
 
+  // 获取分组后的品牌列表
+  const groupedBrands = groupBrandsByInitial(brands);
+
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* 左侧品牌筛选 */}
-      <div className="w-64 bg-white p-4 shadow-md">
-        <h2 className="text-xl font-bold mb-4">品牌筛选</h2>
-        <div className="space-y-2">
-          <button
-            className={`w-full text-left px-3 py-2 rounded ${
-              selectedBrand === "all" ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
-            }`}
-            onClick={() => setSelectedBrand("all")}
-          >
-            全部品牌
-          </button>
-          {Array.from(brands).map((brand) => (
-            <button
-              key={brand}
-              className={`w-full text-left px-3 py-2 rounded ${
-                selectedBrand === brand ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
-              }`}
-              onClick={() => setSelectedBrand(brand)}
-            >
-              {brand || "未分类"}
-            </button>
-          ))}
+      {/* 左侧品牌筛选 - 添加高度限制和滚动 */}
+      <div className="w-64 bg-white shadow-lg flex flex-col h-screen sticky top-0">
+        {/* 标题固定在顶部 */}
+        <div className="p-4 bg-gradient-to-r from-blue-600 to-blue-700 flex-shrink-0">
+          <h2 className="text-xl font-bold text-white">品牌筛选</h2>
+        </div>
+        
+        {/* 品牌列表可滚动区域 */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin">
+          <div className="divide-y divide-gray-100">
+            {/* 全部品牌选项 - 固定在滚动区域顶部 */}
+            <div className="p-2 bg-white sticky top-0 z-10">
+              <button
+                className={`w-full text-left px-4 py-2 rounded-md transition-colors ${
+                  selectedBrand === "all" 
+                    ? "bg-blue-50 text-blue-600 font-medium" 
+                    : "hover:bg-gray-50"
+                }`}
+                onClick={() => setSelectedBrand("all")}
+              >
+                全部品牌
+              </button>
+            </div>
+
+            {/* 分组显示品牌 */}
+            <div className="py-2">
+              {Array.from(groupedBrands.entries()).map(([initial, brandList]) => (
+                <div key={initial} className="mb-4">
+                  {/* 字母分类标签 - 粘性定位 */}
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 sticky top-[52px] z-10">
+                    {initial}
+                  </div>
+                  <div className="space-y-1 mt-1">
+                    {brandList.map(brand => (
+                      <button
+                        key={brand}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                          selectedBrand === brand 
+                            ? "bg-blue-50 text-blue-600 font-medium" 
+                            : "hover:bg-gray-50"
+                        }`}
+                        onClick={() => setSelectedBrand(brand)}
+                      >
+                        <div className="truncate">
+                          {brand || "未分类"}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
