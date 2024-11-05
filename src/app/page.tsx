@@ -30,6 +30,7 @@ const formatDate = (dateStr: string) => {
 
 type User = {
   userStoreName: string;
+  salesPerson: string;
   // 其他属性...
 };
 
@@ -87,6 +88,7 @@ type OrderType = {
   userStoreName?: string;
   goodsList: GoodsWithDesc[];
   _openid: string;
+  salesPerson?: string;
 };
 
 function OrderList() {
@@ -191,6 +193,10 @@ function OrderList() {
                 ? userResult.data[0].userStoreName || '未知店家'
                 : '未知店家';
 
+              const salesPerson = userResult.data && userResult.data.length > 0 
+              ? userResult.data[0].salesPerson || '未知'
+              : '未知';
+
               const goodsWithDesc = await Promise.all(order.goodsList.map(async (goods: any) => {
                 try {
                   const spuResult = await database
@@ -234,6 +240,7 @@ function OrderList() {
               return { 
                 ...order, 
                 userStoreName,
+                salesPerson,
                 goodsList: goodsWithDesc
               };
             } catch (err) {
@@ -241,6 +248,7 @@ function OrderList() {
               return { 
                 ...order, 
                 userStoreName: '未知店家', 
+                salesPerson: '未知', 
                 goodsList: order.goodsList.map((goods: any) => ({
                   ...goods,
                   spuName: '未知SPU' // 添加默认 spuName
@@ -539,8 +547,10 @@ function OrderList() {
               </div>
               <div className="text-sm text-gray-600 mb-4">
                 <p>店家名: {order.userStoreName || '未知店家'}</p>
+
                 <p>收货人: {order.receiverName} {order.receiverPhone}</p>
                 <p>地址: {order.receiverAddress}</p>
+                <p>销售人员: {order.salesPerson || '未知'}</p>
               </div>
               <div className="text-lg font-medium text-green-700">¥{formatMoney(order.paymentAmount)}</div>
               <div className="text-sm text-gray-500">
