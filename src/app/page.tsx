@@ -300,30 +300,68 @@ function OrderList() {
       const element = document.getElementById('orders-container');
       if (!element) return;
 
-      // 展开所有订单以确保完整捕获
+      // 展开所有订单
       const allOrderIds = orders.map(order => order._id);
       setExpandedOrders(new Set(allOrderIds));
 
-      // 等待DOM更新
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 等待DOM更新和图片加载完成
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const canvas = await html2canvas(element, {
-        scale: 1,
-        useCORS: true,
-        logging: false,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
-      });
+      // A4纸的尺寸（以毫米为单位）
+      const A4_WIDTH_MM = 210;
+      const A4_HEIGHT_MM = 297;
+      const MARGIN_MM = 10;
 
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      // 创建PDF文档
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'px',
-        format: [canvas.width, canvas.height]
+        unit: 'mm',
+        format: 'a4'
       });
 
-      pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
-      pdf.save('订单列表.pdf');
+      // 获取所有订单元素
+      const orderElements = element.querySelectorAll('.order-item');
+      let isFirstPage = true;
+
+      // 逐个处理订单
+      for (let i = 0; i < orderElements.length; i++) {
+        const orderElement = orderElements[i];
+        
+        // 为每个订单创建画布
+        const canvas = await html2canvas(orderElement as HTMLElement, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          windowWidth: element.scrollWidth,
+          allowTaint: true,
+        });
+
+        // 计算缩放比例以适应页面宽度
+        const imgWidth = A4_WIDTH_MM - (2 * MARGIN_MM);
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        // 检查是否需要新页面
+        if (!isFirstPage) {
+          pdf.addPage();
+        }
+        isFirstPage = false;
+
+        // 将订单添加到PDF
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        pdf.addImage(
+          imgData,
+          'JPEG',
+          MARGIN_MM,
+          MARGIN_MM,
+          imgWidth,
+          imgHeight,
+          '',
+          'FAST'
+        );
+      }
+
+      // 保存PDF
+      pdf.save(`订单列表_${new Date().toLocaleDateString()}.pdf`);
 
       // 恢复原始展开状态
       setExpandedOrders(new Set());
@@ -396,11 +434,17 @@ function OrderList() {
           </button>
         </div>
 
-        <div id="orders-container" className="space-y-4">
+        <div id="orders-container" className="space-y-4 print:space-y-8">
           {orders.map((order, index) => (
             <div 
               key={order._id}
-              className={`bg-white rounded-lg shadow-md p-6 border border-gray-300 ${order.orderStatus === 80 ? 'bg-gray-100' : ''}`}
+              className={`
+                order-item
+                bg-white rounded-lg shadow-md p-6 border border-gray-300 
+                print:break-inside-avoid-page 
+                print:mb-8
+                ${order.orderStatus === 80 ? 'bg-gray-100' : ''}
+              `}
             >
               <div className="flex justify-between items-center mb-4">
                 <span className="text-gray-900 text-lg font-semibold"> {orders.length - index}. 订单号: {order.orderNo}</span>
@@ -431,10 +475,10 @@ function OrderList() {
                     <tr className="border-b border-gray-300">
                       <th className="py-3 px-4 text-left text-gray-900">序号</th>
                       <th className="py-3 px-4 text-left text-gray-900">商品名称</th>
-                      <th className="py-3 px-4 text-left text-gray-900">SPU</th>
+                      <th className="py-3 px-4 text-center text-gray-900">规格</th>
+                      <th className="py-3 px-4 text-left text-gray-900">条码</th>
                       <th className="py-3 px-4 text-left text-gray-900">单价</th>
                       <th className="py-3 px-4 text-left text-gray-900">数量</th>
-                      <th className="py-3 px-4 text-center text-gray-900">描述</th>
                       <th className="py-3 px-4 text-right text-gray-900">总价</th>
                     </tr>
                   </thead>
@@ -443,12 +487,13 @@ function OrderList() {
                       <tr key={goods.spuId} className="border-b border-gray-300">
                         <td className="py-2 text-gray-900">{index + 1}</td>
                         <td className="py-2 text-gray-900">{goods.goodsName}</td>
+                        <td className="py-2 text-gray-500">{goods.desc}</td>
                         <td className="py-2 text-gray-900">{goods.spuId}</td>
                         <td className="py-2 text-left text-gray-900">¥{formatMoney(goods.price)}</td>
                         <td className="py-2 text-center text-gray-500">
-                          × {goods.quantity} {goods.unitType && goods.unitsPerUnit && goods.quantity/goods.unitsPerUnit >= 1 ? `（${goods.quantity/goods.unitsPerUnit}${goods.unitType}）` : ''}
+                          {goods.quantity} {goods.unitType && goods.unitsPerUnit && goods.quantity/goods.unitsPerUnit >= 1 ? `（${goods.quantity/goods.unitsPerUnit}${goods.unitType}）` : ''}
                         </td>
-                        <td className="py-2 text-gray-500">{goods.desc}</td>
+
                         <td className="py-2 text-right text-gray-900">¥{formatMoney(goods.price * goods.quantity)}</td>
                       </tr>
                     ))}
