@@ -37,6 +37,18 @@ function OrderList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [accessKey, setAccessKey] = useState<string>('');
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+
+  const correctAccessKey = 'chaodan'; // 设定正确的访问密钥
+
+  const handleAccessKeySubmit = () => {
+    if (accessKey === correctAccessKey) {
+      setIsAuthorized(true);
+    } else {
+      alert('访问密钥错误');
+    }
+  };
 
   const toggleOrder = (orderId: string) => {
     setExpandedOrders(prev => {
@@ -51,122 +63,171 @@ function OrderList() {
   };
 
   useEffect(() => {
-    const testConnection = async () => {
-      try {
-        // 等待数据库初始化
-        const database = await dbPromise;
-        console.log('数据库实例:', database);
-        
-        if (!database) {
-          throw new Error('数据库初始化失败');
-        }
+    if (isAuthorized) {
+      const testConnection = async () => {
+        try {
+          const database = await dbPromise;
+          console.log('数据库实例:', database);
 
-        // 先不要指定具体的 openid，而是获取所有用户数据
-        const userResult = await database
-          .collection('users')
-          .limit(10)  // 限制返回10条数据
-          .get();
-        
-        console.log('测试查询用户结果:', userResult);
-        
-        if (userResult && userResult.data && userResult.data.length > 0) {
-          // 打印所有用户的商店名称
-          userResult.data.forEach((user: User, index: number) => {
-            console.log(`第${index + 1}个用户的商店名称:`, user.userStoreName);
-          });
-        } else {
-          console.log('未找到用户数据');
-        }
-        
-      } catch (err) {
-        console.error('数据库测试失败:', err);
-      }
-    };
+          if (!database) {
+            throw new Error('数据库初始化失败');
+          }
 
-    testConnection();
-  }, []);
+          const userResult = await database
+            .collection('users')
+            .limit(10)
+            .get();
+
+          console.log('测试查询用户结果:', userResult);
+
+          if (userResult && userResult.data && userResult.data.length > 0) {
+            userResult.data.forEach((user: User, index: number) => {
+              console.log(`第${index + 1}个用户的商店名称:`, user.userStoreName);
+            });
+          } else {
+            console.log('未找到用户数据');
+          }
+
+        } catch (err) {
+          console.error('数据库测试失败:', err);
+        }
+      };
+
+      testConnection();
+    }
+  }, [isAuthorized]);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        // 等待数据库初始化
-        const database = await dbPromise;
-        
-        if (!database) {
-          throw new Error('数据库初始化失败');
-        }
+    if (isAuthorized) {
+      const fetchOrders = async () => {
+        try {
+          const database = await dbPromise;
 
-        console.log('开始获取订单数据...');
-        
-        const result = await database
-          .collection('orders')
-          .orderBy('createTime', 'desc')
-          .limit(100)
-          .get();
-        
-        if (!result || !result.data) {
-          throw new Error('返回数据格式异常');
-        }
-        
-        // 获取每个订单的店家名和商品描述
-        const ordersWithDetails = await Promise.all(result.data.map(async (order: any) => {
-          try {
-            // 获取用户商店名称
-            const userResult = await database
-              .collection('users')
-              .where({
-                '_openid': order._openid
-              })
-              .get();
-
-            const userStoreName = userResult.data && userResult.data.length > 0 
-              ? userResult.data[0].userStoreName || '未知店家'
-              : '未知店家';
-
-            // 获取商品描述
-            const goodsWithDesc = await Promise.all(order.goodsList.map(async (goods: any) => {
-              try {
-                const spuResult = await database
-                  .collection('spu_db')
-                  .where({
-                    'spuId': goods.spuId
-                  })
-                  .get();
-
-                const spuDesc = spuResult.data && spuResult.data.length > 0 
-                  ? spuResult.data[0].desc || '无描述'
-                  : '无描述';
-
-                return { ...goods, desc: spuDesc };
-              } catch (err) {
-                console.error(`获取商品 ${goods.spuId} 描述失败:`, err);
-                return { ...goods, desc: '无描述' };
-              }
-            }));
-
-            return { 
-              ...order, 
-              userStoreName,
-              goodsList: goodsWithDesc
-            };
-          } catch (err) {
-            console.error(`获取订单 ${order._id} 详情失败:`, err);
-            return { ...order, userStoreName: '未知店家', goodsList: order.goodsList };
+          if (!database) {
+            throw new Error('数据库初始化失败');
           }
-        }));
 
-        setOrders(ordersWithDetails);
-        setError(null);
-      } catch (err) {
-        console.error('获取订单失败:', err);
-        setError(err instanceof Error ? err.message : '获取数据失败');
-      } finally {
-        setLoading(false);
-      }
-    };
+          console.log('开始获取订单数据...');
 
-    fetchOrders();
-  }, []);
+          const result = await database
+            .collection('orders')
+            .orderBy('createTime', 'desc')
+            .limit(100)
+            .get();
+
+          if (!result || !result.data) {
+            throw new Error('返回数据格式异常');
+          }
+
+          const ordersWithDetails = await Promise.all(result.data.map(async (order: any) => {
+            try {
+              const userResult = await database
+                .collection('users')
+                .where({
+                  '_openid': order._openid
+                })
+                .get();
+
+              const userStoreName = userResult.data && userResult.data.length > 0 
+                ? userResult.data[0].userStoreName || '未知店家'
+                : '未知店家';
+
+              const goodsWithDesc = await Promise.all(order.goodsList.map(async (goods: any) => {
+                try {
+                  const spuResult = await database
+                    .collection('spu_db')
+                    .where({
+                      'spuId': goods.spuId
+                    })
+                    .get();
+
+                  const spuDesc = spuResult.data && spuResult.data.length > 0 
+                    ? spuResult.data[0].desc || '无描述'
+                    : '无描述';
+
+                  return { ...goods, desc: spuDesc };
+                } catch (err) {
+                  console.error(`获取商品 ${goods.spuId} 描述失败:`, err);
+                  return { ...goods, desc: '无描述' };
+                }
+              }));
+
+              return { 
+                ...order, 
+                userStoreName,
+                goodsList: goodsWithDesc
+              };
+            } catch (err) {
+              console.error(`获取订单 ${order._id} 详情失败:`, err);
+              return { ...order, userStoreName: '未知店家', goodsList: order.goodsList };
+            }
+          }));
+
+          setOrders(ordersWithDetails);
+          setError(null);
+        } catch (err) {
+          console.error('获取订单失败:', err);
+          setError(err instanceof Error ? err.message : '获取数据失败');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchOrders();
+    }
+  }, [isAuthorized]);
+
+  const getOrderStatusText = (status: number) => {
+    switch (status) {
+      case 10:
+        return '待发货';
+      case 40:
+        return '运送中（待收货）';
+      case 50:
+        return '已完成';
+      case 80:
+        return '已取消';
+      default:
+        return '未知状态';
+    }
+  };
+
+  const getOrderStatusStyle = (status: number) => {
+    switch (status) {
+      case 10:
+        return 'bg-blue-100 text-blue-800 border border-blue-300';
+      case 40:
+        return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
+      case 50:
+        return 'bg-green-100 text-green-800 border border-green-300';
+      case 80:
+        return 'bg-gray-100 text-gray-800 border border-gray-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border border-gray-300';
+    }
+  };
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl">
+          <input
+            type="password"
+            placeholder="请输入访问密钥"
+            value={accessKey}
+            onChange={(e) => setAccessKey(e.target.value)}
+            className="border p-2"
+          />
+          <button
+            onClick={handleAccessKeySubmit}
+            className="ml-2 bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition duration-200"
+          >
+            提交
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -202,16 +263,12 @@ function OrderList() {
           {orders.map((order, index) => (
             <div 
               key={order._id}
-              className="bg-white rounded-lg shadow-md p-6 border border-gray-300"
+              className={`bg-white rounded-lg shadow-md p-6 border border-gray-300 ${order.orderStatus === 80 ? 'bg-gray-100' : ''}`}
             >
               <div className="flex justify-between items-center mb-4">
                 <span className="text-gray-900 text-lg font-semibold"> {orders.length - index}. 订单号: {order.orderNo}</span>
-                <span className={`px-3 py-1 text-sm rounded-full ${
-                  order.payStatus === 'PAID' 
-                    ? 'bg-green-200 text-green-800' 
-                    : 'bg-yellow-200 text-yellow-800'
-                }`}>
-                  {order.payStatus === 'PAID' ? '已支付' : '未支付'}
+                <span className={`px-3 py-1 text-sm rounded-full ${getOrderStatusStyle(order.orderStatus)}`}>
+                  {getOrderStatusText(order.orderStatus)}
                 </span>
               </div>
               <div className="text-sm text-gray-600 mb-4">
@@ -238,7 +295,6 @@ function OrderList() {
                       <th className="py-3 px-4 text-left text-gray-900">商品名称</th>
                       <th className="py-3 px-4 text-left text-gray-900">描述</th>
                       <th className="py-3 px-4 text-center text-gray-900">数量</th>
-
                       <th className="py-3 px-4 text-right text-gray-900">价格</th>
                     </tr>
                   </thead>
