@@ -313,7 +313,7 @@ function ProductManagement() {
                     </div>
                   </div>
 
-                  {/* 原有的编辑字段 */}
+                  {/* 基本信息 */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700">商品名称</label>
                     <input
@@ -390,6 +390,57 @@ function ProductManagement() {
                           unit: e.target.value
                         })}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">保质期</label>
+                      <input
+                        type="text"
+                        value={editingProduct.shelfLife}
+                        onChange={(e) => setEditingProduct({
+                          ...editingProduct,
+                          shelfLife: e.target.value
+                        })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">产地</label>
+                      <input
+                        type="text"
+                        value={editingProduct.origin}
+                        onChange={(e) => setEditingProduct({
+                          ...editingProduct,
+                          origin: e.target.value
+                        })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">品牌</label>
+                      <input
+                        type="text"
+                        value={editingProduct.brand}
+                        onChange={(e) => setEditingProduct({
+                          ...editingProduct,
+                          brand: e.target.value
+                        })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">商品编码</label>
+                      <input
+                        type="text"
+                        value={editingProduct.spuId}
+                        readOnly
+                        className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
                       />
                     </div>
                   </div>
