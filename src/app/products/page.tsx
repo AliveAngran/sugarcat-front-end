@@ -144,13 +144,14 @@ function ProductManagement() {
     try {
       const updatedProduct = {
         ...editingProduct,
-        categoryIds: selectedCategories.map(String), // 将选中的分类ID转换为字符串数组
+        categoryIds: selectedCategories.map(String),
       };
 
       const response = await fetch('/api/products/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify(updatedProduct),
       });
@@ -158,13 +159,10 @@ function ProductManagement() {
       const result = await response.json();
 
       if (result.success) {
-        setProducts(products.map(p => 
-          p._id === editingProduct._id ? { ...p, ...updatedProduct } : p
-        ));
         setIsEditModalOpen(false);
+        // 直接重新获取最新数据
+        window.location.reload(); // 使用页面刷新来确保获取最新数据
         alert('商品更新成功');
-        // 添加页面刷新
-        window.location.reload();
       } else {
         throw new Error(result.error || '更新失败');
       }
@@ -216,22 +214,31 @@ function ProductManagement() {
     }
   }, [router]);
 
-  // 取商品数据
+  // 修改获取商品数据的函数
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('/api/products');
+        const response = await fetch('/api/products', {
+          cache: 'no-store',
+          headers: {
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
 
         if (result.success && result.data) {
-          // 添加空值检查和默认值
           const sortedProducts = result.data
             .sort((a: Product, b: Product) => {
               const timeA = a.createTime ? new Date(a.createTime).getTime() : 0;
               const timeB = b.createTime ? new Date(b.createTime).getTime() : 0;
-              return timeA - timeB;
-            })
-            .reverse();
+              return timeB - timeA;  // 降序排序
+            });
           
           setProducts(sortedProducts);
           const brandSet = new Set<string>(
@@ -251,7 +258,7 @@ function ProductManagement() {
     };
 
     fetchProducts();
-  }, []);
+  }, []); // 只在组件挂载时执行一次
 
   // 过滤商品
   const filteredProducts = products.filter((product) => {
@@ -795,7 +802,7 @@ function ProductManagement() {
           </div>
         )}
 
-        {/* 确保删除确认对话框在编辑模态框之上 */}
+        {/* 确保删除确认对话框在编辑���态框之上 */}
         {isDeleteConfirmOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
             <div className="bg-white rounded-lg p-6 max-w-md w-full">
