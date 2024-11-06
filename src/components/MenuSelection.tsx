@@ -3,6 +3,7 @@ export default function MenuSelection() {
   const router = useRouter();
   
   const menuItems = [
+    { title: '数据看板', path: '/dashboard', icon: '📊' },
     { title: '订单管理', path: '/orders', icon: '📋' },
     { title: '货品管理', path: '/products', icon: '📦' },
   ];
