@@ -15,6 +15,8 @@ interface Product {
   brand: string;
   desc: string;
   price: string;
+  minSalePrice: string;
+  maxLinePrice: string;
   originPrice: string;
   primaryImage: string;
   minBuyNum: number;
@@ -39,7 +41,7 @@ const loadcos = (url: string) => {
 
 // 由于 Product 已经包含 _id，这个接口可以简化
 interface EditingProduct extends Product {
-  // 不需���再定义 _id，因为已经在 Product 中定义了
+  // 不需再定义 _id，因为已经在 Product 中定义了
 }
 
 // 添加品牌和排序的工具函数
@@ -77,6 +79,8 @@ interface NewProduct {
   spuId: string;
   brand: string;
   price: string;
+  minSalePrice: string;
+  maxLinePrice: string;
   originPrice: string;
   minBuyNum: number;
   unit: string;
@@ -87,6 +91,9 @@ interface NewProduct {
   available?: number;
   isPutOnSale?: number;
   buyAtMultipleTimes?: boolean;
+  categoryIds: string[];
+  skuList: any[];
+  spuStockQuantity: number;
 }
 
 function ProductManagement() {
@@ -100,6 +107,7 @@ function ProductManagement() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<EditingProduct | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedNewCategories, setSelectedNewCategories] = useState<number[]>([]);
   const [newProduct, setNewProduct] = useState<NewProduct>({
     title: '',
     etitle: '',
@@ -107,6 +115,8 @@ function ProductManagement() {
     spuId: '',
     brand: '',
     price: '',
+    minSalePrice: '',
+    maxLinePrice: '',
     originPrice: '',
     minBuyNum: 1,
     unit: '',
@@ -116,7 +126,10 @@ function ProductManagement() {
     images: [],
     available: 1000000,
     isPutOnSale: 1,
-    buyAtMultipleTimes: true
+    buyAtMultipleTimes: true,
+    categoryIds: [],
+    skuList: [],
+    spuStockQuantity: 100000
   });
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -173,7 +186,7 @@ function ProductManagement() {
     
     if (isPrimary) {
       // 主图使用 -zt 后缀
-      const fileName = `${brandFolder}/${spuId}-zt.jpg`;
+      const fileName = `${brandFolder}/${spuId}-ZT.jpg`;
       setNewProduct({...newProduct, primaryImage: baseUrl + fileName});
     } else {
       // 附图：第一张用 -zt，之后的用 -1, -2, -3...
@@ -182,7 +195,7 @@ function ProductManagement() {
       
       if (currentImages.length === 0) {
         // 第一张附图用 -zt
-        fileNameWithIndex = `${brandFolder}/${spuId}-zt.jpg`;
+        fileNameWithIndex = `${brandFolder}/${spuId}-ZT.jpg`;
       } else {
         // 后续附图用数字编号
         const nextIndex = currentImages.length;
@@ -203,7 +216,7 @@ function ProductManagement() {
     }
   }, [router]);
 
-  // 获取商品数据
+  // 取商品数据
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -252,12 +265,17 @@ function ProductManagement() {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const productToAdd = {
+        ...newProduct,
+        categoryIds: selectedNewCategories.map(String), // 将数字转换为字符串
+      };
+
       const response = await fetch('/api/products/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newProduct),
+        body: JSON.stringify(productToAdd),
       });
 
       const result = await response.json();
@@ -284,6 +302,8 @@ function ProductManagement() {
           spuId: '',
           brand: '',
           price: '',
+          minSalePrice: '',
+          maxLinePrice: '',
           originPrice: '',
           minBuyNum: 1,
           unit: '',
@@ -293,8 +313,12 @@ function ProductManagement() {
           images: [],
           available: 1000000,
           isPutOnSale: 1,
-          buyAtMultipleTimes: true
+          buyAtMultipleTimes: true,
+          categoryIds: [],
+          skuList: [],
+          spuStockQuantity: 100000
         });
+        setSelectedNewCategories([]); // 重置分类选择
       }
     } catch (error) {
       console.error("添加商品失败:", error);
@@ -321,7 +345,7 @@ function ProductManagement() {
       if (result.success) {
         // 更新商品列表
         setProducts(products.filter(p => p._id !== editingProduct?._id));
-        // ���闭所有模态框
+        // 闭所有模态框
         setIsDeleteConfirmOpen(false);
         setIsEditModalOpen(false);
         // 显示成功消息
@@ -358,6 +382,8 @@ function ProductManagement() {
           spuId: String(parseInt(firstRow['新条码'] || firstRow['条码'] || '0')),
           brand: '',  // 可以从Excel文件名中提取
           price: String(firstRow['小程序价格'] || firstRow['小程序价'] || '0'),
+          minSalePrice: String(firstRow['小程序价格'] || firstRow['小程序价'] || '0'),
+          maxLinePrice: String(firstRow['零售价'] || firstRow['建议零售价'] || '0'),
           originPrice: String(firstRow['零售价'] || firstRow['建议零售价'] || '0'),
           minBuyNum: parseInt(String(firstRow['起订量'])) || 1,
           unit: firstRow['单位'] || '',
@@ -367,7 +393,10 @@ function ProductManagement() {
           images: [],
           available: 1000000,
           isPutOnSale: 1,
-          buyAtMultipleTimes: firstRow['倍购'] === 1
+          buyAtMultipleTimes: firstRow['倍购'] === 1,
+          categoryIds: [],
+          skuList: [],
+          spuStockQuantity: 1000000
         };
 
         setNewProduct(newProductData);
@@ -387,7 +416,9 @@ function ProductManagement() {
       const nextIndex = currentImportIndex + 1;
       const nextRow = importedProducts[nextIndex];
       
-      // 设置下一个商品的数据
+      // 重置分类选择
+      setSelectedNewCategories([]);
+      
       const nextProductData = {
         title: nextRow['商品名称'] || nextRow['产品'] || nextRow['产品名称'] || '',
         etitle: '',
@@ -395,6 +426,8 @@ function ProductManagement() {
         spuId: String(parseInt(nextRow['新条码'] || nextRow['条码'] || '0')),
         brand: '',
         price: String(nextRow['小程序价格'] || nextRow['小程序价'] || '0'),
+        minSalePrice: String(nextRow['小程序价格'] || nextRow['小程序价'] || '0'),
+        maxLinePrice: String(nextRow['零售价'] || nextRow['建议零售价'] || '0'),
         originPrice: String(nextRow['零售价'] || nextRow['建议零售价'] || '0'),
         minBuyNum: parseInt(String(nextRow['起订量'])) || 1,
         unit: nextRow['单位'] || '',
@@ -404,17 +437,19 @@ function ProductManagement() {
         images: [],
         available: 1000000,
         isPutOnSale: 1,
-        buyAtMultipleTimes: nextRow['倍购'] === 1
+        buyAtMultipleTimes: nextRow['倍购'] === 1,
+        categoryIds: [],
+        skuList: [],
+        spuStockQuantity: 1000000
       };
 
       setNewProduct(nextProductData);
       setCurrentImportIndex(nextIndex);
     } else {
-      // 所有商品都处理完毕
       setIsAddModalOpen(false);
       setImportedProducts([]);
       setCurrentImportIndex(-1);
-      alert('所有商品已导入完成');
+      setSelectedNewCategories([]); // 重置分类选择
     }
   };
 
@@ -458,7 +493,7 @@ function ProductManagement() {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* 左侧品牌筛选 - 添加高度限制和滚动 */}
+      {/* 左侧品牌筛选 - 添加高度制和滚动 */}
       <div className="w-64 bg-white shadow-lg flex flex-col h-screen sticky top-0">
         {/* 标题固定在顶部 */}
         <div className="p-4 bg-gradient-to-r from-blue-600 to-blue-700 flex-shrink-0">
@@ -763,7 +798,7 @@ function ProductManagement() {
         {/* 确保删除确认对话框在编辑模态框之上 */}
         {isDeleteConfirmOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
               <h3 className="text-xl font-bold mb-4">确认删除</h3>
               <p className="mb-6">确定要删除商品 "{editingProduct?.title}" 吗？此操作不可撤销。</p>
               <div className="flex justify-end space-x-2">
@@ -884,7 +919,7 @@ function ProductManagement() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">原价</label>
+                      <label className="block text-sm font-medium text-gray-700">原</label>
                       <input
                         type="number"
                         step="0.01"
@@ -976,6 +1011,37 @@ function ProductManagement() {
                         倍购
                       </label>
                     </div>
+                  </div>
+                </div>
+
+                {/* 商品分类 */}
+                <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                  <h3 className="font-medium text-gray-900">商品分类</h3>
+                  <div className="grid grid-cols-3 gap-2 p-4 border rounded-lg max-h-[200px] overflow-y-auto">
+                    {Object.entries(CATEGORY_NAMES).map(([value, name]) => (
+                      <label
+                        key={value}
+                        className={`flex items-center space-x-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${
+                          selectedNewCategories.includes(parseInt(value)) ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedNewCategories.includes(parseInt(value))}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedNewCategories([...selectedNewCategories, parseInt(value)]);
+                            } else {
+                              setSelectedNewCategories(
+                                selectedNewCategories.filter(id => id !== parseInt(value))
+                              );
+                            }
+                          }}
+                          className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="text-sm">{name}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
 
