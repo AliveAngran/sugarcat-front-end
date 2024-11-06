@@ -14,7 +14,6 @@ export async function POST(request: Request) {
 
     const db = cloudbase.database();
     
-    // 更新商品信息，包含所有可编辑字段
     await db.collection('spu_db')
       .doc(product._id)
       .update({
@@ -33,6 +32,7 @@ export async function POST(request: Request) {
         available: product.available,
         isPutOnSale: product.isPutOnSale,
         buyAtMultipleTimes: product.buyAtMultipleTimes,
+        categoryIds: product.categoryIds,
         updateTime: new Date()
       });
 

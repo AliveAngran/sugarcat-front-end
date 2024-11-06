@@ -5,6 +5,7 @@ export async function GET() {
   try {
     const db = cloudbase.database();
     const result = await db.collection('spu_db')
+      .orderBy('createTime', 'asc')
       .limit(1000)
       .get();
 

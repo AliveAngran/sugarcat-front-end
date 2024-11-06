@@ -5,6 +5,8 @@ import { dbPromise } from "@/utils/cloudbase";
 import { checkAuth } from "@/utils/auth";
 import { useRouter } from 'next/navigation';
 import { pinyin } from 'pinyin-pro';
+import * as XLSX from 'xlsx';
+import { CATEGORY_MAPPING, CATEGORY_NAMES, getOriginalCategory } from '@/constants/categories';
 
 interface Product {
   _id?: string;
@@ -21,6 +23,8 @@ interface Product {
   origin: string;
   images: string[];
   buyAtMultipleTimes?: boolean;
+  createTime?: string;
+  categoryIds?: string[];
 }
 
 // 添加 loadcos 函数
@@ -35,10 +39,10 @@ const loadcos = (url: string) => {
 
 // 由于 Product 已经包含 _id，这个接口可以简化
 interface EditingProduct extends Product {
-  // 不需要再定义 _id，因为已经在 Product 中定义了
+  // 不需���再定义 _id，因为已经在 Product 中定义了
 }
 
-// 添加品牌分组和排序的工具函数
+// 添加品牌和排序的工具函数
 const getPinyinInitial = (brand: string): string => {
   // 简单处理：如果是字母开头就返回首字母，否则归类到 "#" 组
   const first = brand.charAt(0).toUpperCase();
@@ -115,40 +119,45 @@ function ProductManagement() {
     buyAtMultipleTimes: true
   });
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [importedProducts, setImportedProducts] = useState<any[]>([]);
+  const [currentImportIndex, setCurrentImportIndex] = useState<number>(-1);
 
   // 修改编辑商品的函数
   const handleUpdateProduct = async () => {
     if (!editingProduct) return;
-    
+
     try {
+      const updatedProduct = {
+        ...editingProduct,
+        categoryIds: selectedCategories.map(String), // 将选中的分类ID转换为字符串数组
+      };
+
       const response = await fetch('/api/products/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(editingProduct),
+        body: JSON.stringify(updatedProduct),
       });
 
       const result = await response.json();
-      
-      if (!result.success) {
+
+      if (result.success) {
+        setProducts(products.map(p => 
+          p._id === editingProduct._id ? { ...p, ...updatedProduct } : p
+        ));
+        setIsEditModalOpen(false);
+        alert('商品更新成功');
+        // 添加页面刷新
+        window.location.reload();
+      } else {
         throw new Error(result.error || '更新失败');
       }
-
-      // 更新本地状态
-      setProducts(products.map(p => 
-        p._id === editingProduct._id ? editingProduct : p
-      ));
-      
-      // 关闭编辑模态框
-      setIsEditModalOpen(false);
-      setEditingProduct(null);
-      
-      // 显示成功消息
-      alert('商品更新成功');
     } catch (error) {
-      console.error("更新商品失败:", error);
-      alert("更新失败，请重试");
+      console.error('更新商品失败:', error);
+      alert('更新商品失败: ' + (error instanceof Error ? error.message : '未知错误'));
     }
   };
 
@@ -158,20 +167,28 @@ function ProductManagement() {
     const spuId = newProduct.spuId;
     
     // 确保品牌名称存在，否则使用默认值
-    const brandFolder = brand || 'other';
+    const brandFolder = 'other';
     
     const baseUrl = 'cloud://tangmao-6ga5x8ct393e0fe9.7461-tangmao-6ga5x8ct393e0fe9-1327435676/';
     
-    // 生成文件名：品牌文件夹/商品编码-zt.jpg（主图）或品牌文件夹/商品编码-数字.jpg（其他图片）
-    const fileName = `${brandFolder}/${spuId}${isPrimary ? '-zt' : ''}.jpg`;
-    
     if (isPrimary) {
+      // 主图使用 -zt 后缀
+      const fileName = `${brandFolder}/${spuId}-zt.jpg`;
       setNewProduct({...newProduct, primaryImage: baseUrl + fileName});
     } else {
-      // 为附图添加序号
+      // 附图：第一张用 -zt，之后的用 -1, -2, -3...
       const currentImages = newProduct.images;
-      const nextIndex = currentImages.length + 1;
-      const fileNameWithIndex = `${brandFolder}/${spuId}-${nextIndex}.jpg`;
+      let fileNameWithIndex;
+      
+      if (currentImages.length === 0) {
+        // 第一张附图用 -zt
+        fileNameWithIndex = `${brandFolder}/${spuId}-zt.jpg`;
+      } else {
+        // 后续附图用数字编号
+        const nextIndex = currentImages.length;
+        fileNameWithIndex = `${brandFolder}/${spuId}-${nextIndex}.jpg`;
+      }
+      
       const newImages = [...currentImages, baseUrl + fileNameWithIndex];
       setNewProduct({...newProduct, images: newImages});
     }
@@ -194,9 +211,18 @@ function ProductManagement() {
         const result = await response.json();
 
         if (result.success && result.data) {
-          setProducts(result.data);
+          // 添加空值检查和默认值
+          const sortedProducts = result.data
+            .sort((a: Product, b: Product) => {
+              const timeA = a.createTime ? new Date(a.createTime).getTime() : 0;
+              const timeB = b.createTime ? new Date(b.createTime).getTime() : 0;
+              return timeA - timeB;
+            })
+            .reverse();
+          
+          setProducts(sortedProducts);
           const brandSet = new Set<string>(
-            result.data
+            sortedProducts
               .map((p: Product) => p.brand)
               .filter((brand: string): brand is string => typeof brand === 'string')
           );
@@ -242,33 +268,41 @@ function ProductManagement() {
 
       // 更新商品列表
       setProducts([...products, result.data]);
-      setIsAddModalOpen(false);
-      // 重置表单
-      setNewProduct({
-        title: '',
-        etitle: '',
-        desc: '',
-        spuId: '',
-        brand: '',
-        price: '',
-        originPrice: '',
-        minBuyNum: 1,
-        unit: '',
-        shelfLife: '',
-        origin: '',
-        primaryImage: '',
-        images: [],
-        available: 1000000,
-        isPutOnSale: 1,
-        buyAtMultipleTimes: true
-      });
+      
+      // 如果还有下一个商品，继续处理
+      if (currentImportIndex >= 0 && currentImportIndex < importedProducts.length - 1) {
+        handleNextProduct();
+      } else {
+        // 没有更多商品了，关闭模态框并重置状态
+        setIsAddModalOpen(false);
+        setImportedProducts([]);
+        setCurrentImportIndex(-1);
+        setNewProduct({
+          title: '',
+          etitle: '',
+          desc: '',
+          spuId: '',
+          brand: '',
+          price: '',
+          originPrice: '',
+          minBuyNum: 1,
+          unit: '',
+          shelfLife: '',
+          origin: '',
+          primaryImage: '',
+          images: [],
+          available: 1000000,
+          isPutOnSale: 1,
+          buyAtMultipleTimes: true
+        });
+      }
     } catch (error) {
       console.error("添加商品失败:", error);
       alert("添加失败，请重试");
     }
   };
 
-  // 获取分组后���品牌列表
+  // 获取分组后品牌列表
   const groupedBrands = groupBrandsByInitial(brands);
 
   // 添加删除商品的函数
@@ -287,11 +321,13 @@ function ProductManagement() {
       if (result.success) {
         // 更新商品列表
         setProducts(products.filter(p => p._id !== editingProduct?._id));
-        // 关闭所有模态框
+        // ���闭所有模态框
         setIsDeleteConfirmOpen(false);
         setIsEditModalOpen(false);
         // 显示成功消息
         alert('商品删除成功');
+        // 添加页面刷新
+        window.location.reload();
       } else {
         throw new Error(result.error || '删除失败');
       }
@@ -300,6 +336,121 @@ function ProductManagement() {
       alert('删除商品失败: ' + (error instanceof Error ? error.message : '未知错误'));
     }
   };
+
+  // 修改处理Excel文件的函数
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessing(true);
+    try {
+      const data = await readExcelFile(file);
+      if (data.length > 0) {
+        setImportedProducts(data);
+        setCurrentImportIndex(0); // 设置为第一个商品
+        
+        // 设置第一个商品的数据
+        const firstRow = data[0];
+        const newProductData = {
+          title: firstRow['商品名称'] || firstRow['产品'] || firstRow['产品名称'] || '',
+          etitle: '',
+          desc: firstRow['规格型号'] || firstRow['规格'] || '',
+          spuId: String(parseInt(firstRow['新条码'] || firstRow['条码'] || '0')),
+          brand: '',  // 可以从Excel文件名中提取
+          price: String(firstRow['小程序价格'] || firstRow['小程序价'] || '0'),
+          originPrice: String(firstRow['零售价'] || firstRow['建议零售价'] || '0'),
+          minBuyNum: parseInt(String(firstRow['起订量'])) || 1,
+          unit: firstRow['单位'] || '',
+          shelfLife: firstRow['保质期'] || '',
+          origin: firstRow['产地'] || '',
+          primaryImage: '',
+          images: [],
+          available: 1000000,
+          isPutOnSale: 1,
+          buyAtMultipleTimes: firstRow['倍购'] === 1
+        };
+
+        setNewProduct(newProductData);
+        setIsAddModalOpen(true);
+      }
+    } catch (error) {
+      console.error('读取Excel文件失败:', error);
+      alert('读取Excel文件失败，请检查文件格式');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 添加处理下一个商品的函数
+  const handleNextProduct = () => {
+    if (currentImportIndex < importedProducts.length - 1) {
+      const nextIndex = currentImportIndex + 1;
+      const nextRow = importedProducts[nextIndex];
+      
+      // 设置下一个商品的数据
+      const nextProductData = {
+        title: nextRow['商品名称'] || nextRow['产品'] || nextRow['产品名称'] || '',
+        etitle: '',
+        desc: nextRow['规格型号'] || nextRow['规格'] || '',
+        spuId: String(parseInt(nextRow['新条码'] || nextRow['条码'] || '0')),
+        brand: '',
+        price: String(nextRow['小程序价格'] || nextRow['小程序价'] || '0'),
+        originPrice: String(nextRow['零售价'] || nextRow['建议零售价'] || '0'),
+        minBuyNum: parseInt(String(nextRow['起订量'])) || 1,
+        unit: nextRow['单位'] || '',
+        shelfLife: nextRow['保质期'] || '',
+        origin: nextRow['产地'] || '',
+        primaryImage: '',
+        images: [],
+        available: 1000000,
+        isPutOnSale: 1,
+        buyAtMultipleTimes: nextRow['倍购'] === 1
+      };
+
+      setNewProduct(nextProductData);
+      setCurrentImportIndex(nextIndex);
+    } else {
+      // 所有商品都处理完毕
+      setIsAddModalOpen(false);
+      setImportedProducts([]);
+      setCurrentImportIndex(-1);
+      alert('所有商品已导入完成');
+    }
+  };
+
+  const readExcelFile = (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: true });
+          resolve(jsonData);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = (error) => reject(error);
+      reader.readAsBinaryString(file);
+    });
+  };
+
+  useEffect(() => {
+    if (editingProduct) {
+      // 直接使用数据库中的 categoryIds，不需要转换
+      const categories = editingProduct.categoryIds
+        ? editingProduct.categoryIds
+            .map(id => parseInt(id))
+            .filter(id => !isNaN(id))
+        : [];
+      setSelectedCategories(categories);
+    } else {
+      setSelectedCategories([]);
+    }
+  }, [editingProduct]);
 
   if (!isAuthorized) {
     return null; // 未授权时不渲染任何内容，等待重定向
@@ -367,12 +518,24 @@ function ProductManagement() {
       <div className="flex-1 p-6">
         {/* 添加新增商品按钮和搜索框 */}
         <div className="mb-6 flex justify-between items-center">
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            新增商品
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              新增商品
+            </button>
+            <label className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors cursor-pointer">
+              批量导入
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleFileUpload}
+                onClick={(e) => (e.currentTarget.value = '')}
+              />
+            </label>
+          </div>
           
           <input
             type="text"
@@ -383,7 +546,7 @@ function ProductManagement() {
           />
         </div>
 
-        {/* 商品列表 - 改为表格形式 */}
+        {/* 商品列表 - 为表格形式 */}
         <div className="bg-white rounded-lg shadow">
           <table className="min-w-full">
             <thead>
@@ -436,132 +599,158 @@ function ProductManagement() {
         {/* 编辑模态框 */}
         {isEditModalOpen && editingProduct && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
+            <div className="bg-white rounded-lg w-[800px] max-h-[90vh] flex flex-col">
+              {/* 固定的标题栏 */}
+              <div className="p-6 border-b flex justify-between items-center flex-shrink-0">
                 <h2 className="text-xl font-bold">编辑商品</h2>
-                <button
-                  onClick={() => setIsEditModalOpen(false)}
+                <button 
+                  onClick={() => setIsEditModalOpen(false)} 
                   className="text-gray-500 hover:text-gray-700"
                 >
                   关闭
                 </button>
               </div>
-              
-              {/* 添加编辑表单 */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">商品名称</label>
-                  <input
-                    type="text"
-                    value={editingProduct.title}
-                    onChange={(e) => setEditingProduct({...editingProduct, title: e.target.value})}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">商品编码</label>
-                  <input
-                    type="text"
-                    value={editingProduct.spuId}
-                    onChange={(e) => setEditingProduct({...editingProduct, spuId: e.target.value})}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">品牌</label>
-                  <input
-                    type="text"
-                    value={editingProduct.brand}
-                    onChange={(e) => setEditingProduct({...editingProduct, brand: e.target.value})}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">规格描述</label>
-                  <input
-                    type="text"
-                    value={editingProduct.desc}
-                    onChange={(e) => setEditingProduct({...editingProduct, desc: e.target.value})}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-
+              {/* 可滚动的内容区域 */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {/* 表单字段 */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">售价</label>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">商品名称</label>
                     <input
                       type="text"
-                      value={editingProduct.price}
-                      onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      value={editingProduct?.title || ''}
+                      onChange={(e) => setEditingProduct(prev => ({ ...prev!, title: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">原价</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">商品编码</label>
                     <input
                       type="text"
-                      value={editingProduct.originPrice}
-                      onChange={(e) => setEditingProduct({...editingProduct, originPrice: e.target.value})}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      value={editingProduct?.spuId || ''}
+                      onChange={(e) => setEditingProduct(prev => ({ ...prev!, spuId: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">最小购买量</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">品牌</label>
+                    <input
+                      type="text"
+                      value={editingProduct?.brand || ''}
+                      onChange={(e) => setEditingProduct(prev => ({ ...prev!, brand: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">售价</label>
                     <input
                       type="number"
-                      value={editingProduct.minBuyNum}
-                      onChange={(e) => setEditingProduct({...editingProduct, minBuyNum: parseInt(e.target.value)})}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      value={editingProduct?.price || ''}
+                      onChange={(e) => setEditingProduct(prev => ({ ...prev!, price: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">单位</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">原价</label>
+                    <input
+                      type="number"
+                      value={editingProduct?.originPrice || ''}
+                      onChange={(e) => setEditingProduct(prev => ({ ...prev!, originPrice: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">最小购买量</label>
+                    <input
+                      type="number"
+                      value={editingProduct?.minBuyNum || ''}
+                      onChange={(e) => setEditingProduct(prev => ({ ...prev!, minBuyNum: parseInt(e.target.value) }))}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">单位</label>
                     <input
                       type="text"
-                      value={editingProduct.unit}
-                      onChange={(e) => setEditingProduct({...editingProduct, unit: e.target.value})}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      value={editingProduct?.unit || ''}
+                      onChange={(e) => setEditingProduct(prev => ({ ...prev!, unit: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                </div>
 
-                <div className="flex items-center mt-4">
-                  <input
-                    type="checkbox"
-                    id="editBuyAtMultipleTimes"
-                    checked={editingProduct.buyAtMultipleTimes}
-                    onChange={(e) => setEditingProduct({...editingProduct, buyAtMultipleTimes: e.target.checked})}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="editBuyAtMultipleTimes" className="ml-2 block text-sm text-gray-900">
-                    倍购
-                  </label>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">规格描述</label>
+                    <textarea
+                      value={editingProduct?.desc || ''}
+                      onChange={(e) => setEditingProduct(prev => ({ ...prev!, desc: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* 分类选择区域 */}
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      商品分类（可多选）
+                    </label>
+                    <div className="grid grid-cols-3 gap-2 p-4 border rounded-lg max-h-[200px] overflow-y-auto">
+                      {Object.entries(CATEGORY_NAMES).map(([value, name]) => (
+                        <label
+                          key={value}
+                          className={`flex items-center space-x-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${
+                            selectedCategories.includes(parseInt(value)) ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCategories.includes(parseInt(value))}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedCategories([...selectedCategories, parseInt(value)]);
+                              } else {
+                                setSelectedCategories(
+                                  selectedCategories.filter(id => id !== parseInt(value))
+                                );
+                              }
+                            }}
+                            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
+                          <span className="text-sm">{name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-between mt-6">
+              {/* 修改底部按钮区域，添加删除按钮 */}
+              <div className="p-6 border-t flex justify-between flex-shrink-0">
+                {/* 左侧放删除按钮 */}
                 <button
                   onClick={() => setIsDeleteConfirmOpen(true)}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600"
                 >
                   删除商品
                 </button>
-                <div className="space-x-2">
+
+                {/* 右侧放取消和保存按钮 */}
+                <div className="flex gap-2">
                   <button
                     onClick={() => setIsEditModalOpen(false)}
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                    className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
                   >
                     取消
                   </button>
                   <button
                     onClick={handleUpdateProduct}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
                   >
                     保存
                   </button>
@@ -571,9 +760,9 @@ function ProductManagement() {
           </div>
         )}
 
-        {/* 删除确认对话框 */}
+        {/* 确保删除确认对话框在编辑模态框之上 */}
         {isDeleteConfirmOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h3 className="text-xl font-bold mb-4">确认删除</h3>
               <p className="mb-6">确定要删除商品 "{editingProduct?.title}" 吗？此操作不可撤销。</p>
@@ -600,7 +789,14 @@ function ProductManagement() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">新增商品</h2>
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold">新增商品</h2>
+                  {currentImportIndex >= 0 && (
+                    <span className="text-sm text-gray-500">
+                      进度: {currentImportIndex + 1} / {importedProducts.length}
+                    </span>
+                  )}
+                </div>
                 <button 
                   onClick={() => setIsAddModalOpen(false)}
                   className="text-gray-500 hover:text-gray-700"
