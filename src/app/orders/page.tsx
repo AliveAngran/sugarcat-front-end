@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { db, dbPromise } from "@/utils/cloudbase";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { useRouter } from "next/navigation";
+import { checkAuth } from "@/utils/auth";
 
 const formatMoney = (amount: number) => {
   return (amount / 100).toFixed(2);
 };
 
-// 修改时间格式化函数
 const formatDate = (dateStr: string) => {
   try {
     const date = new Date(dateStr);
@@ -31,7 +32,6 @@ const formatDate = (dateStr: string) => {
 type User = {
   userStoreName: string;
   salesPerson: string;
-  // 其他属性...
 };
 
 interface ParsedDescription {
@@ -95,28 +95,28 @@ type OrderType = {
   goodsList: GoodsWithDesc[];
   _openid: string;
   salesPerson?: string;
+  isExported?: boolean;
 };
 
 function OrderList() {
+  const router = useRouter();
   const [orders, setOrders] = useState<OrderType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
-  const [accessKey, setAccessKey] = useState<string>("");
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [exporting, setExporting] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
-  const correctAccessKey = "chaodan"; // 设定正确的访问密钥
-
-  const handleAccessKeySubmit = () => {
-    if (accessKey === correctAccessKey) {
-      setIsAuthorized(true);
+  useEffect(() => {
+    const auth = checkAuth();
+    if (!auth) {
+      router.push('/');
     } else {
-      alert("访问密钥错误");
+      setIsAuthorized(true);
     }
-  };
+  }, [router]);
 
   const toggleOrder = (orderId: string) => {
     setExpandedOrders((prev) => {
@@ -130,179 +130,39 @@ function OrderList() {
     });
   };
 
-  useEffect(() => {
-    if (isAuthorized) {
-      const testConnection = async () => {
-        try {
-          const database = await dbPromise;
-          console.log("数据库实例:", database);
-
-          if (!database) {
-            throw new Error("数据库初始化失败");
-          }
-
-          const userResult = await database.collection("users").limit(10).get();
-
-          console.log("测试查询用户结果:", userResult);
-
-          if (userResult && userResult.data && userResult.data.length > 0) {
-            userResult.data.forEach((user: User, index: number) => {
-              console.log(
-                `第${index + 1}个用户的商店名称:`,
-                user.userStoreName
-              );
-            });
-          } else {
-            console.log("未找到用户数据");
-          }
-        } catch (err) {
-          console.error("数据库测试失败:", err);
-        }
-      };
-
-      testConnection();
+  // 首先将获取订单的逻辑抽取成一个函数，这样可以重用
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/orders', {
+        cache: 'no-store'
+      });
+      
+      if (!response.ok) {
+        throw new Error('获取订单失败');
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || '获取订单失败');
+      }
+      
+      setOrders(result.data);
+      setError(null);
+    } catch (err) {
+      console.error("获取订单失败:", err);
+      setError(err instanceof Error ? err.message : "获取数据失败");
+    } finally {
+      setLoading(false);
     }
-  }, [isAuthorized]);
+  };
 
   useEffect(() => {
     if (isAuthorized) {
-      const fetchOrders = async () => {
-        try {
-          const database = await dbPromise;
-
-          if (!database) {
-            throw new Error("数据库初始化失败");
-          }
-
-          console.log("开始获取订单数据...");
-
-          const result = await database
-            .collection("orders")
-            .orderBy("createTime", "desc")
-            .limit(100)
-            .get();
-
-          if (!result || !result.data) {
-            throw new Error("返回数据格式异常");
-          }
-
-          const ordersWithDetails = await Promise.all(
-            result.data.map(async (order: any) => {
-              try {
-                const userResult = await database
-                  .collection("users")
-                  .where({
-                    _openid: order._openid,
-                  })
-                  .get();
-
-                const userStoreName =
-                  userResult.data && userResult.data.length > 0
-                    ? userResult.data[0].userStoreName || "未知店家"
-                    : "未知店家";
-
-                const salesPerson =
-                  userResult.data && userResult.data.length > 0
-                    ? userResult.data[0].salesPerson || "未知"
-                    : "未知";
-
-                const goodsWithDesc = await Promise.all(
-                  order.goodsList.map(async (goods: any) => {
-                    try {
-                      const spuResult = await database
-                        .collection("spu_db")
-                        .where({
-                          spuId: goods.spuId,
-                        })
-                        .get();
-
-                      let spuDesc =
-                        spuResult.data && spuResult.data.length > 0
-                          ? spuResult.data[0].desc || "无描述"
-                          : "无描述";
-
-                      const parsedDesc = parseDescription(spuDesc);
-
-                      const spuName =
-                        spuResult.data && spuResult.data.length > 0
-                          ? spuResult.data[0].spuName || "未知SPU"
-                          : "未知SPU";
-
-                      return {
-                        ...goods,
-                        desc: parsedDesc.formattedDesc,
-                        unitType: parsedDesc.unitType,
-                        unitsPerUnit: parsedDesc.unitsPerUnit,
-                        totalUnitType: parsedDesc.totalUnitType,
-                        spuName, // 添加 spuName
-                      };
-                    } catch (err) {
-                      console.error(`获取商品 ${goods.spuId} 描述失败:`, err);
-                      return {
-                        ...goods,
-                        desc: "无描述",
-                        unitType: "",
-                        unitsPerUnit: null,
-                        totalUnitType: "",
-                        spuName: "未知SPU", // 添加默认 spuName
-                      };
-                    }
-                  })
-                );
-
-                return {
-                  ...order,
-                  userStoreName,
-                  salesPerson,
-                  goodsList: goodsWithDesc,
-                };
-              } catch (err) {
-                console.error(`获取订单 ${order._id} 详情失败:`, err);
-                return {
-                  ...order,
-                  userStoreName: "未知店家",
-                  salesPerson: "未知",
-                  goodsList: order.goodsList.map((goods: any) => ({
-                    ...goods,
-                    spuName: "未知SPU", // 添加默认 spuName
-                  })),
-                };
-              }
-            })
-          );
-
-          setOrders(ordersWithDetails);
-          setError(null);
-        } catch (err) {
-          console.error("获取订单失败:", err);
-          console.error(
-            "错误详细信息:",
-            err instanceof Error ? err.stack : err
-          );
-          setError(err instanceof Error ? err.message : "获取数据失败");
-        } finally {
-          setLoading(false);
-        }
-      };
-
       fetchOrders();
     }
   }, [isAuthorized]);
-
-  const getOrderStatusText = (status: number) => {
-    switch (status) {
-      case 10:
-        return "待发货";
-      case 40:
-        return "运送中（待收货）";
-      case 50:
-        return "已完成";
-      case 80:
-        return "已取消";
-      default:
-        return "未知状态";
-    }
-  };
 
   const getOrderStatusStyle = (status: number) => {
     switch (status) {
@@ -336,6 +196,42 @@ function OrderList() {
     });
   };
 
+  const updateOrderExportStatus = async (orderId: string, isExported: boolean) => {
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId,
+          isExported
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('更新订单导出状态失败');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || '更新订单导出状态失败');
+      }
+
+      // 更新本地状态
+      setOrders(orders.map(order => 
+        order._id === orderId 
+          ? { ...order, isExported }
+          : order
+      ));
+
+    } catch (error) {
+      console.error('更新订单导出状态失败:', error);
+      alert(error instanceof Error ? error.message : '更新订单导出状态失败');
+    }
+  };
+
   const exportToPDF = async (selectedOnly: boolean = false) => {
     if (!confirm("确认导出所选订单数据？")) return;
 
@@ -344,39 +240,32 @@ function OrderList() {
       const element = document.getElementById("orders-container");
       if (!element) return;
 
-      // 检查是否有选中的订单
       if (selectedOnly && selectedOrders.size === 0) {
         alert("请先选择要导出的订单");
         return;
       }
 
-      // 获取所有订单元素
       const orderElements = element.querySelectorAll(".order-item");
       let isFirstPage = true;
 
-      // 创建PDF文档
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      // A4纸的尺寸（以毫米为单位）
       const A4_WIDTH_MM = 210;
       const A4_HEIGHT_MM = 297;
       const MARGIN_MM = 10;
 
-      // 逐个处理订单
       for (let i = 0; i < orderElements.length; i++) {
         const orderElement = orderElements[i] as HTMLElement;
         const orderId = orderElement.getAttribute("data-order-id");
 
-        // 如果是选择导出模式，跳过未选中的订单
         if (selectedOnly && (!orderId || !selectedOrders.has(orderId))) {
           continue;
         }
 
-        // 临时展开当前订单
         if (orderId) {
           setExpandedOrders((prev) => {
             const newSet = new Set(prev);
@@ -385,10 +274,8 @@ function OrderList() {
           });
         }
 
-        // 等待DOM更新
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // 为每个订单创建画布
         const canvas = await html2canvas(orderElement, {
           scale: 2,
           useCORS: true,
@@ -397,17 +284,14 @@ function OrderList() {
           allowTaint: true,
         });
 
-        // 计算缩放比例以适应页面宽度
         const imgWidth = A4_WIDTH_MM - 2 * MARGIN_MM;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-        // 检查是否需要新页面
         if (!isFirstPage) {
           pdf.addPage();
         }
         isFirstPage = false;
 
-        // 将订单添加到PDF
         const imgData = canvas.toDataURL("image/jpeg", 1.0);
         pdf.addImage(
           imgData,
@@ -420,7 +304,6 @@ function OrderList() {
           "FAST"
         );
 
-        // 恢复订单折叠状态
         if (orderId) {
           setExpandedOrders((prev) => {
             const newSet = new Set(prev);
@@ -430,8 +313,22 @@ function OrderList() {
         }
       }
 
-      // 保存PDF
+      // 在成功导出后更新所有导出订单的状态
+      const exportedOrderIds = selectedOnly 
+        ? Array.from(selectedOrders)
+        : orders.map(order => order._id);
+
+      // 批量更新导出状态
+      await Promise.all(
+        exportedOrderIds.map(orderId => 
+          updateOrderExportStatus(orderId, true)
+        )
+      );
+
       pdf.save(`订单列表_${new Date().toLocaleDateString()}.pdf`);
+      
+      // 重新获取最新数据
+      await fetchOrders();
     } catch (error) {
       console.error("PDF导出失败:", error);
       alert("PDF导出失败，请重试");
@@ -444,32 +341,71 @@ function OrderList() {
     }
   };
 
-  if (!isAuthorized) {
+  const updateOrderStatus = async (orderId: string, newStatus: number) => {
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId,
+          newStatus
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('更新订单状态失败');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || '更新订单状态失败');
+      }
+
+      // 更新本地状态
+      setOrders(orders.map(order => 
+        order._id === orderId 
+          ? { ...order, orderStatus: newStatus }
+          : order
+      ));
+
+      alert('订单状态更新成功');
+    } catch (error) {
+      console.error('更新订单状态失败:', error);
+      alert(error instanceof Error ? error.message : '更新订单状态失败');
+    }
+  };
+
+  const renderStatusButton = (order: OrderType) => {
+    const statusOptions = [
+      { value: 10, label: '待发货' },
+      { value: 40, label: '运送中' },
+      { value: 50, label: '已完成' },
+      { value: 80, label: '已取消' }
+    ];
+
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-purple-800 to-blue-600">
-        <div className="bg-black bg-opacity-50 p-8 rounded-xl shadow-2xl backdrop-filter backdrop-blur-lg border border-gray-700">
-          <h2 className="text-3xl text-white mb-6 text-center">
-            请输入访问密钥
-          </h2>
-          <div className="flex flex-col items-center">
-            <input
-              type="password"
-              placeholder="访问密钥"
-              value={accessKey}
-              onChange={(e) => setAccessKey(e.target.value)}
-              className="w-80 px-4 py-2 mb-4 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-400"
-            />
-            <button
-              onClick={handleAccessKeySubmit}
-              className="w-80 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-purple-600 hover:to-blue-500 text-white font-semibold py-2 rounded-lg transition duration-300 ease-in-out transform hover:scale-105"
-            >
-              提交
-            </button>
-          </div>
-        </div>
-      </div>
+      <select
+        value={order.orderStatus}
+        onChange={(e) => {
+          const newStatus = parseInt(e.target.value, 10);
+          if (confirm(`确认将订单状态更改为"${statusOptions.find(opt => opt.value === newStatus)?.label}"？`)) {
+            updateOrderStatus(order._id, newStatus);
+          }
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className={`px-3 py-1 rounded-full text-sm cursor-pointer no-print ${getOrderStatusStyle(order.orderStatus)}`}
+      >
+        {statusOptions.map(option => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     );
-  }
+  };
 
   if (loading) {
     return (
@@ -513,13 +449,27 @@ function OrderList() {
               {selectMode ? "取消选择" : "选择订单"}
             </button>
             {selectMode && (
-              <button
-                onClick={() => exportToPDF(true)}
-                disabled={exporting || selectedOrders.size === 0}
-                className="bg-green-600 text-white rounded-lg px-6 py-2 hover:bg-green-700 transition duration-200 disabled:bg-gray-400"
-              >
-                {exporting ? "导出中..." : `导出所选(${selectedOrders.size})`}
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    // 选择所有未导出的订单
+                    const unexportedOrders = orders
+                      .filter(order => !order.isExported)
+                      .map(order => order._id);
+                    setSelectedOrders(new Set(unexportedOrders));
+                  }}
+                  className="bg-yellow-600 text-white rounded-lg px-6 py-2 hover:bg-yellow-700 transition duration-200"
+                >
+                  选择未导出
+                </button>
+                <button
+                  onClick={() => exportToPDF(true)}
+                  disabled={exporting || selectedOrders.size === 0}
+                  className="bg-green-600 text-white rounded-lg px-6 py-2 hover:bg-green-700 transition duration-200 disabled:bg-gray-400"
+                >
+                  {exporting ? "导出中..." : `导出所选(${selectedOrders.size})`}
+                </button>
+              </>
             )}
             {!selectMode && (
               <button
@@ -566,16 +516,24 @@ function OrderList() {
               )}
               <div className="flex justify-between items-center mb-4">
                 <span className="text-gray-900 text-lg font-semibold">
-                  {" "}
                   {orders.length - index}. 订单号: {order.orderNo}
                 </span>
-                <span
-                  className={`px-3 py-1 text-sm rounded-full ${getOrderStatusStyle(
-                    order.orderStatus
-                  )}`}
-                >
-                  {getOrderStatusText(order.orderStatus)}
-                </span>
+                <div className="flex items-center space-x-4 no-print">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateOrderExportStatus(order._id, !order.isExported);
+                    }}
+                    className={`px-2 py-1 rounded-full text-xs cursor-pointer hover:opacity-80 ${
+                      order.isExported 
+                        ? 'bg-purple-100 text-purple-800 border border-purple-300' 
+                        : 'bg-orange-100 text-orange-800 border border-orange-300'
+                    }`}
+                  >
+                    {order.isExported ? '已导出' : '未导出'}
+                  </button>
+                  {renderStatusButton(order)}
+                </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
                 <div className="flex">
@@ -604,50 +562,37 @@ function OrderList() {
                 {formatDate(String(order.createTime))}
               </div>
               <button
-                className="mt-4 bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition duration-200"
-                onClick={() => toggleOrder(order._id)}
+                className="mt-4 bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition duration-200 no-print"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleOrder(order._id);
+                }}
               >
                 {expandedOrders.has(order._id) ? "收起" : "展开"}
               </button>
 
-              {/* 展开的商品列表 */}
               {expandedOrders.has(order._id) && (
                 <table className="mt-4 w-full rounded-lg">
                   <thead>
                     <tr className="border-b border-gray-300">
-                      <th className="py-3 px-4 text-left text-gray-900">
-                        序号
-                      </th>
+                      <th className="py-3 px-4 text-left text-gray-900">序号</th>
                       <th className="py-3 px-4 text-left text-gray-900">
                         商品名称
                       </th>
                       <th className="py-3 px-4 text-center text-gray-900">
                         规格
                       </th>
-                      <th className="py-3 px-4 text-left text-gray-900">
-                        条码
-                      </th>
-                      <th className="py-3 px-4 text-left text-gray-900">
-                        单价
-                      </th>
-                      <th className="py-3 px-4 text-left text-gray-900">
-                        数量
-                      </th>
-                      <th className="py-3 px-4 text-right text-gray-900">
-                        总价
-                      </th>
+                      <th className="py-3 px-4 text-left text-gray-900">条码</th>
+                      <th className="py-3 px-4 text-left text-gray-900">单价</th>
+                      <th className="py-3 px-4 text-left text-gray-900">数量</th>
+                      <th className="py-3 px-4 text-right text-gray-900">总价</th>
                     </tr>
                   </thead>
                   <tbody>
                     {order.goodsList.map((goods, index) => (
-                      <tr
-                        key={goods.spuId}
-                        className="border-b border-gray-300"
-                      >
+                      <tr key={goods.spuId} className="border-b border-gray-300">
                         <td className="py-2 text-gray-900">{index + 1}</td>
-                        <td className="py-2 text-gray-900">
-                          {goods.goodsName}
-                        </td>
+                        <td className="py-2 text-gray-900">{goods.goodsName}</td>
                         <td className="py-2 text-gray-500">{goods.desc}</td>
                         <td className="py-2 text-gray-900">{goods.spuId}</td>
                         <td className="py-2 text-left text-gray-900">
@@ -663,7 +608,6 @@ function OrderList() {
                               }）`
                             : ""}
                         </td>
-
                         <td className="py-2 text-right text-gray-900">
                           ¥{formatMoney(goods.price * goods.quantity)}
                         </td>

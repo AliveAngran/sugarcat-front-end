@@ -27,6 +27,7 @@ interface Product {
   buyAtMultipleTimes?: boolean;
   createTime?: string;
   categoryIds?: string[];
+  isPutOnSale: boolean;
 }
 
 // 添加 loadcos 函数
@@ -598,6 +599,7 @@ function ProductManagement() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">规格</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最小购买量</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
               </tr>
             </thead>
@@ -620,6 +622,20 @@ function ProductManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {product.minBuyNum}{product.unit}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        product.isPutOnSale ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {product.isPutOnSale ? '已上架' : '未上架'}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        product.buyAtMultipleTimes ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {product.buyAtMultipleTimes ? '倍购' : '非倍购'}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
