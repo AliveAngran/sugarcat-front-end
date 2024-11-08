@@ -20,8 +20,9 @@ export async function GET() {
     // 获取订单数据
     const ordersResult = await db.collection('orders')
       .orderBy('createTime', 'desc')
-      .limit(100)
+      .limit(1000)
       .get();
+    
 
     // 获取所有相关用户的 openid
     const openids = Array.from(new Set(ordersResult.data.map((order: any) => order._openid)));
@@ -50,24 +51,29 @@ export async function GET() {
         order.goodsList.map((goods: any) => goods.spuId)
       ))
     ];
+    console.log('待查询的 spuIds:', spuIds);
 
     // 批量获取商品信息
     const spuResult = await db.collection('spu_db')
       .where({
         spuId: _.in(spuIds)
       })
+      .limit(2000)
       .get();
+    console.log('查询到的 SPU 数量:', spuResult.data.length);
+    console.log('SPU 数据示例:', spuResult.data[0]);
 
     // 创建商品信息映射
     const spuMap = new Map(
       spuResult.data.map((spu: any) => [
         spu.spuId,
         {
-          desc: spu.desc || "无描述",
-          spuName: spu.spuName || "未知SPU"
+          desc: spu.desc || "无描述了",
+          title: spu.title || "未知SPU"
         }
       ])
     );
+    console.log('spuMap 大小:', spuMap.size);
 
     // 处理订单数据
     const processedOrders = ordersResult.data.map((order: any) => {
@@ -78,8 +84,8 @@ export async function GET() {
 
       const processedGoodsList = order.goodsList.map((goods: any) => {
         const spuInfo = spuMap.get(goods.spuId) || {
-          desc: "无描述",
-          spuName: "未知SPU"
+          desc: "无描述啊",
+          title: "未知SPU"
         };
         
         const parsedDesc = parseDescription(spuInfo.desc);
@@ -90,7 +96,7 @@ export async function GET() {
           unitType: parsedDesc.unitType,
           unitsPerUnit: parsedDesc.unitsPerUnit,
           totalUnitType: parsedDesc.totalUnitType,
-          spuName: spuInfo.spuName
+          title: spuInfo.title
         };
       });
 
