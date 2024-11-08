@@ -98,6 +98,12 @@ type OrderType = {
   isExported?: boolean;
 };
 
+// 在文件顶部添加常量定义
+const A4_WIDTH_MM = 210;
+const A4_HEIGHT_MM = 297;
+const MARGIN_MM = 10;
+const MAX_HEIGHT_MM = A4_HEIGHT_MM - (2 * MARGIN_MM);
+
 function OrderList() {
   const router = useRouter();
   const [orders, setOrders] = useState<OrderType[]>([]);
@@ -232,6 +238,48 @@ function OrderList() {
     }
   };
 
+  // 处理第二页的表头和内容
+  const addSecondPage = (
+    pdf: jsPDF,
+    remainingImgData: string,
+    headerImgData: string,
+    imgWidth: number,
+    remainingImgHeight: number,
+    headerImgHeight: number
+  ) => {
+    const HEADER_TOP_MARGIN = 15;
+    const CONTENT_SPACING = 10;
+
+    // 添加续页标记
+    pdf.setFontSize(8);
+    pdf.setTextColor(128, 128, 128);
+    pdf.text("(续页)", MARGIN_MM, MARGIN_MM - 2);
+
+    // 添加表头，位置稍微下移
+    pdf.addImage(
+      headerImgData,
+      "JPEG",
+      MARGIN_MM,
+      MARGIN_MM + HEADER_TOP_MARGIN,
+      imgWidth,
+      headerImgHeight,
+      "",
+      "FAST"
+    );
+
+    // 添加剩余内容，位置相应下移
+    pdf.addImage(
+      remainingImgData,
+      "JPEG",
+      MARGIN_MM,
+      MARGIN_MM + HEADER_TOP_MARGIN + headerImgHeight + CONTENT_SPACING,
+      imgWidth,
+      remainingImgHeight,
+      "",
+      "FAST"
+    );
+  };
+
   const exportToPDF = async (selectedOnly: boolean = false) => {
     if (!confirm("确认导出所选订单数据？")) return;
 
@@ -245,6 +293,12 @@ function OrderList() {
         return;
       }
 
+      // 临时隐藏所有带有 no-print 类的元素
+      const noPrintElements = element.querySelectorAll('.no-print');
+      noPrintElements.forEach(el => {
+        (el as HTMLElement).style.display = 'none';
+      });
+
       const orderElements = element.querySelectorAll(".order-item");
       let isFirstPage = true;
 
@@ -257,6 +311,8 @@ function OrderList() {
       const A4_WIDTH_MM = 210;
       const A4_HEIGHT_MM = 297;
       const MARGIN_MM = 10;
+      const MAX_HEIGHT_MM = A4_HEIGHT_MM - (2 * MARGIN_MM);
+      let currentPageHeight = 0;
 
       for (let i = 0; i < orderElements.length; i++) {
         const orderElement = orderElements[i] as HTMLElement;
@@ -267,11 +323,7 @@ function OrderList() {
         }
 
         if (orderId) {
-          setExpandedOrders((prev) => {
-            const newSet = new Set(prev);
-            newSet.add(orderId);
-            return newSet;
-          });
+          setExpandedOrders((prev) => new Set([...prev, orderId]));
         }
 
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -284,34 +336,180 @@ function OrderList() {
           allowTaint: true,
         });
 
-        const imgWidth = A4_WIDTH_MM - 2 * MARGIN_MM;
+        // 获表格行的位置信息
+        const tableRows = orderElement.querySelectorAll('tbody tr');
+        const rowPositions = Array.from(tableRows).map(row => {
+          const rect = (row as HTMLElement).getBoundingClientRect();
+          return {
+            top: rect.top - orderElement.getBoundingClientRect().top,
+            height: rect.height
+          };
+        });
+
+        const imgWidth = A4_WIDTH_MM - (2 * MARGIN_MM);
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        const scale = imgWidth / canvas.width;
 
-        if (!isFirstPage) {
+        if (imgHeight > MAX_HEIGHT_MM) {
+          if (!isFirstPage) {
+            pdf.addPage();
+            currentPageHeight = 0;
+          }
+          isFirstPage = false;
+
+          // 计算最佳分割点
+          const maxFirstPagePixels = MAX_HEIGHT_MM / scale;
+          let splitPosition = maxFirstPagePixels;
+
+          // 找到最近的表格行边界作为分割点
+          for (let j = 0; j < rowPositions.length; j++) {
+            const rowBottom = rowPositions[j].top + rowPositions[j].height;
+            if (rowBottom > maxFirstPagePixels) {
+              // 使用上一行的底部作为分割点
+              splitPosition = j > 0 ? 
+                rowPositions[j - 1].top + rowPositions[j - 1].height :
+                rowPositions[j].top;
+              break;
+            }
+          }
+
+          // 创建第一页画布
+          const firstPageCanvas = document.createElement('canvas');
+          const firstPageCtx = firstPageCanvas.getContext('2d');
+          if (!firstPageCtx) continue;
+
+          firstPageCanvas.width = canvas.width;
+          firstPageCanvas.height = splitPosition;
+
+          firstPageCtx.drawImage(
+            canvas,
+            0,
+            0,
+            canvas.width,
+            splitPosition,
+            0,
+            0,
+            canvas.width,
+            splitPosition
+          );
+
+          const firstPageImgData = firstPageCanvas.toDataURL("image/jpeg", 1.0);
+          const firstPageImgHeight = splitPosition * scale;
+
+          pdf.addImage(
+            firstPageImgData,
+            "JPEG",
+            MARGIN_MM,
+            MARGIN_MM,
+            imgWidth,
+            firstPageImgHeight,
+            "",
+            "FAST"
+          );
+
+          // 处理剩余内容
           pdf.addPage();
-        }
-        isFirstPage = false;
+          const remainingHeight = canvas.height - splitPosition;
+          const remainingCanvas = document.createElement('canvas');
+          const remainingCtx = remainingCanvas.getContext('2d');
+          if (!remainingCtx) continue;
 
-        const imgData = canvas.toDataURL("image/jpeg", 1.0);
-        pdf.addImage(
-          imgData,
-          "JPEG",
-          MARGIN_MM,
-          MARGIN_MM,
-          imgWidth,
-          imgHeight,
-          "",
-          "FAST"
-        );
+          remainingCanvas.width = canvas.width;
+          remainingCanvas.height = remainingHeight;
 
-        if (orderId) {
-          setExpandedOrders((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(orderId);
-            return newSet;
-          });
+          remainingCtx.drawImage(
+            canvas,
+            0,
+            splitPosition,
+            canvas.width,
+            remainingHeight,
+            0,
+            0,
+            canvas.width,
+            remainingHeight
+          );
+
+          const remainingImgData = remainingCanvas.toDataURL("image/jpeg", 1.0);
+          const remainingImgHeight = remainingHeight * scale;
+
+          // 处理表头
+          const tableHeader = orderElement.querySelector('thead');
+          if (tableHeader) {
+            const headerCanvas = document.createElement('canvas');
+            const headerCtx = headerCanvas.getContext('2d');
+            if (headerCtx) {
+              const headerHeight = (tableHeader as HTMLElement).offsetHeight;
+              headerCanvas.width = canvas.width;
+              headerCanvas.height = headerHeight;
+              
+              // 可以选择稍微放大表头
+              const headerScale = 1.1; // 表头放大比例
+              
+              headerCtx.scale(headerScale, headerScale);
+              headerCtx.drawImage(
+                canvas,
+                0,
+                0,
+                canvas.width / headerScale,
+                headerHeight / headerScale,
+                0,
+                0,
+                canvas.width / headerScale,
+                headerHeight / headerScale
+              );
+
+              const headerImgData = headerCanvas.toDataURL("image/jpeg", 1.0);
+              const headerImgHeight = headerHeight * scale * headerScale;
+
+              // 使用新的函数添加第二页内容
+              addSecondPage(
+                pdf,
+                remainingImgData,
+                headerImgData,
+                imgWidth,
+                remainingImgHeight,
+                headerImgHeight
+              );
+            }
+          } else {
+            // 如果没有表头，直接添加剩余内容
+            pdf.addImage(
+              remainingImgData,
+              "JPEG",
+              MARGIN_MM,
+              MARGIN_MM,
+              imgWidth,
+              remainingImgHeight,
+              "",
+              "FAST"
+            );
+          }
+        } else {
+          if (currentPageHeight + imgHeight > MAX_HEIGHT_MM) {
+            pdf.addPage();
+            currentPageHeight = 0;
+            isFirstPage = false;
+          }
+
+          pdf.addImage(
+            canvas.toDataURL("image/jpeg", 1.0),
+            "JPEG",
+            MARGIN_MM,
+            MARGIN_MM + currentPageHeight,
+            imgWidth,
+            imgHeight,
+            "",
+            "FAST"
+          );
+
+          currentPageHeight += imgHeight + 5;
         }
       }
+
+      // 恢复所有 no-print 元素的显示
+      noPrintElements.forEach(el => {
+        (el as HTMLElement).style.display = '';
+      });
 
       // 在成功导出后更新所有导出订单的状态
       const exportedOrderIds = selectedOnly 
