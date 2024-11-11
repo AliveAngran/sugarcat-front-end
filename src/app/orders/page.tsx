@@ -688,16 +688,12 @@ function OrderList() {
               data-order-id={order._id}
               className={`
                 order-item
-                bg-white rounded-lg shadow-md p-4 border border-gray-300 
+                rounded-lg shadow-md p-4 border border-gray-300 
                 print:break-inside-avoid-page 
                 print:mb-8
-                ${order.orderStatus === 80 ? "bg-gray-100" : ""}
+                ${order.orderStatus === 80 ? "bg-gray-100 text-gray-500" : "bg-white text-gray-900"}
                 ${selectMode ? "cursor-pointer" : ""}
-                ${
-                  selectMode && selectedOrders.has(order._id)
-                    ? "ring-2 ring-blue-500"
-                    : ""
-                }
+                ${selectMode && selectedOrders.has(order._id) ? "ring-2 ring-blue-500" : ""}
               `}
               onClick={() => selectMode && toggleSelectOrder(order._id)}
             >
@@ -707,13 +703,14 @@ function OrderList() {
                     type="checkbox"
                     checked={selectedOrders.has(order._id)}
                     onChange={() => toggleSelectOrder(order._id)}
-                    className="w-5 h-5 text-blue-600"
+                    className={`w-5 h-5 ${order.orderStatus === 80 ? "cursor-not-allowed" : "text-blue-600"}`}
                     onClick={(e) => e.stopPropagation()}
+                    disabled={order.orderStatus === 80}
                   />
                 </div>
               )}
               <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-900 text-lg font-semibold">
+                <span className="text-lg font-semibold">
                   {orders.length - index}. 订单号: {order.orderNo}
                 </span>
                 <div className="flex items-center space-x-4 no-print">
@@ -726,14 +723,15 @@ function OrderList() {
                       order.isExported 
                         ? 'bg-purple-100 text-purple-800 border border-purple-300' 
                         : 'bg-orange-100 text-orange-800 border border-orange-300'
-                    }`}
+                    } ${order.orderStatus === 80 ? "opacity-50 cursor-not-allowed" : ""}`}
+                    disabled={order.orderStatus === 80}
                   >
                     {order.isExported ? '已导出' : '未导出'}
                   </button>
                   {renderStatusButton(order)}
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
                 <div className="flex">
                   <span className="font-semibold w-20">店家名：</span>
                   <span>{order.userStoreName || "未知店家"}</span>
@@ -756,57 +754,56 @@ function OrderList() {
               <div className="text-lg font-medium text-green-700">
                 ¥{formatMoney(order.paymentAmount)}
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm">
                 {formatDate(String(order.createTime))}
               </div>
               <button
-                className="mt-4 bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition duration-200 no-print"
+                className={`mt-4 rounded-lg px-4 py-2 hover:bg-blue-700 transition duration-200 no-print ${
+                  order.orderStatus === 80
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleOrder(order._id);
                 }}
+                disabled={order.orderStatus === 80}
               >
                 {expandedOrders.has(order._id) ? "收起" : "展开"}
               </button>
 
               {expandedOrders.has(order._id) && (
-                <table className="mt-4 w-full rounded-lg">
+                <table className="mt-4 w-full rounded-lg text-sm">
                   <thead>
                     <tr className="border-b border-gray-300">
-                      <th className="py-3 px-4 text-left text-gray-900">序号</th>
-                      <th className="py-3 px-4 text-left text-gray-900">
-                        商品名称
-                      </th>
-                      <th className="py-3 px-4 text-center text-gray-900">
-                        规格
-                      </th>
-                      <th className="py-3 px-4 text-left text-gray-900">条码</th>
-                      <th className="py-3 px-4 text-left text-gray-900">单价</th>
-                      <th className="py-3 px-4 text-left text-gray-900">数量</th>
-                      <th className="py-3 px-4 text-right text-gray-900">总价</th>
+                      <th className="py-1.5 px-2 text-left font-medium">序号</th>
+                      <th className="py-1.5 px-2 text-left font-medium">商品名称</th>
+                      <th className="py-1.5 px-2 text-center font-medium">规格</th>
+                      <th className="py-1.5 px-2 text-left font-medium">条码</th>
+                      <th className="py-1.5 px-2 text-left font-medium">单价</th>
+                      <th className="py-1.5 px-2 text-left font-medium">数量</th>
+                      <th className="py-1.5 px-2 text-right font-medium">总价</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="text-xs">
                     {order.goodsList.map((goods, index) => (
                       <tr key={goods.spuId} className="border-b border-gray-300">
-                        <td className="py-2 text-gray-900">{index + 1}</td>
-                        <td className="py-2 text-gray-900">{goods.goodsName}</td>
-                        <td className="py-2 text-gray-500">{goods.desc}</td>
-                        <td className="py-2 text-gray-900">{goods.spuId}</td>
-                        <td className="py-2 text-left text-gray-900">
+                        <td className="py-1 px-2">{index + 1}</td>
+                        <td className="py-1 px-2">{goods.goodsName}</td>
+                        <td className="py-1 px-2">{goods.desc}</td>
+                        <td className="py-1 px-2">{goods.spuId}</td>
+                        <td className="py-1 px-2">
                           ¥{formatMoney(goods.price)}
                         </td>
-                        <td className="py-2 text-center text-gray-500">
+                        <td className="py-1 px-2 text-center">
                           {goods.quantity}{" "}
                           {goods.unitType &&
                           goods.unitsPerUnit &&
                           goods.quantity / goods.unitsPerUnit >= 1
-                            ? `（${goods.quantity / goods.unitsPerUnit}${
-                                goods.unitType
-                              }）`
+                            ? `（${goods.quantity / goods.unitsPerUnit}${goods.unitType}）`
                             : ""}
                         </td>
-                        <td className="py-2 text-right text-gray-900">
+                        <td className="py-1 px-2 text-right">
                           ¥{formatMoney(goods.price * goods.quantity)}
                         </td>
                       </tr>
