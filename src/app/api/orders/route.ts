@@ -32,6 +32,7 @@ export async function GET() {
       .where({
         _openid: _.in(openids)
       })
+      .limit(1000)
       .get();
 
     // 创建用户信息映射
