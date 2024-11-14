@@ -86,6 +86,7 @@ type OrderType = {
   _id: string;
   orderNo: string;
   orderStatus: number;
+  payStatus: string;
   paymentAmount: number;
   receiverName: string;
   receiverPhone: string;
@@ -317,8 +318,14 @@ function OrderList() {
       for (let i = 0; i < orderElements.length; i++) {
         const orderElement = orderElements[i] as HTMLElement;
         const orderId = orderElement.getAttribute("data-order-id");
+        const order = orders.find(o => o._id === orderId);
 
         if (selectedOnly && (!orderId || !selectedOrders.has(orderId))) {
+          continue;
+        }
+
+        // 跳过未付款的订单
+        if (order && order.payStatus === 'UNPAID') {
           continue;
         }
 
@@ -691,7 +698,9 @@ function OrderList() {
                 rounded-lg shadow-md p-4 border border-gray-300 
                 print:break-inside-avoid-page 
                 print:mb-8
-                ${order.orderStatus === 80 ? "bg-gray-100 text-gray-500" : "bg-white text-gray-900"}
+                ${order.orderStatus === 80 ? "bg-gray-100 text-gray-500" : 
+                  order.payStatus === 'UNPAID' ? "bg-rose-50/70" : "bg-white"}
+                ${order.orderStatus === 80 || order.payStatus === 'UNPAID' ? "text-gray-500" : "text-gray-900"}
                 ${selectMode ? "cursor-pointer" : ""}
                 ${selectMode && selectedOrders.has(order._id) ? "ring-2 ring-blue-500" : ""}
               `}
@@ -714,6 +723,11 @@ function OrderList() {
                   {orders.length - index}. 订单号: {order.orderNo}
                 </span>
                 <div className="flex items-center space-x-4 no-print">
+                  {order.payStatus === 'UNPAID' && (
+                    <span className="px-2 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-medium border border-rose-200">
+                      未付款
+                    </span>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -723,8 +737,8 @@ function OrderList() {
                       order.isExported 
                         ? 'bg-purple-100 text-purple-800 border border-purple-300' 
                         : 'bg-orange-100 text-orange-800 border border-orange-300'
-                    } ${order.orderStatus === 80 ? "opacity-50 cursor-not-allowed" : ""}`}
-                    disabled={order.orderStatus === 80}
+                    } ${(order.orderStatus === 80 || order.payStatus === 'UNPAID') ? "opacity-50 cursor-not-allowed" : ""}`}
+                    disabled={order.orderStatus === 80 || order.payStatus === 'UNPAID'}
                   >
                     {order.isExported ? '已导出' : '未导出'}
                   </button>
@@ -751,7 +765,13 @@ function OrderList() {
                   <span>{order.salesPerson || "未知"}</span>
                 </div>
               </div>
-              <div className="text-lg font-medium text-green-700">
+              <div className={`text-lg font-medium ${
+                order.payStatus === 'UNPAID' 
+                  ? 'text-rose-600' 
+                  : order.orderStatus === 80 
+                    ? 'text-gray-500'
+                    : 'text-rose-600'  // 统一使用玫瑰色
+              }`}>
                 ¥{formatMoney(order.paymentAmount)}
               </div>
               <div className="text-sm">
@@ -792,7 +812,11 @@ function OrderList() {
                         <td className="py-1 px-2">{goods.goodsName}</td>
                         <td className="py-1 px-2">{goods.desc}</td>
                         <td className="py-1 px-2">{goods.spuId}</td>
-                        <td className="py-1 px-2">
+                        <td className={`py-1 px-2 text-right ${
+                          order.payStatus === 'UNPAID' || order.orderStatus === 80
+                            ? 'text-gray-500'
+                            : 'text-rose-600'
+                        }`}>
                           ¥{formatMoney(goods.price)}
                         </td>
                         <td className="py-1 px-2 text-center">
@@ -803,7 +827,11 @@ function OrderList() {
                             ? `（${goods.quantity / goods.unitsPerUnit}${goods.unitType}）`
                             : ""}
                         </td>
-                        <td className="py-1 px-2 text-right">
+                        <td className={`py-1 px-2 text-right ${
+                          order.payStatus === 'UNPAID' || order.orderStatus === 80
+                            ? 'text-gray-500'
+                            : 'text-rose-600'
+                        }`}>
                           ¥{formatMoney(goods.price * goods.quantity)}
                         </td>
                       </tr>

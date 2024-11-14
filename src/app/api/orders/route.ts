@@ -52,7 +52,7 @@ export async function GET() {
         order.goodsList.map((goods: any) => goods.spuId)
       ))
     ];
-    console.log('待查询的 spuIds:', spuIds);
+    // console.log('待查询的 spuIds:', spuIds);
 
     // 批量获取商品信息
     const spuResult = await db.collection('spu_db')
@@ -74,7 +74,7 @@ export async function GET() {
         }
       ])
     );
-    console.log('spuMap 大小:', spuMap.size);
+    // console.log('spuMap 大小:', spuMap.size);
 
     // 处理订单数据
     const processedOrders = ordersResult.data.map((order: any) => {
