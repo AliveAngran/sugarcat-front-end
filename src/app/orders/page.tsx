@@ -6,6 +6,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useRouter } from "next/navigation";
 import { checkAuth } from "@/utils/auth";
+import * as XLSX from 'xlsx';
 
 const formatMoney = (amount: number) => {
   return (amount / 100).toFixed(2);
@@ -239,7 +240,7 @@ function OrderList() {
     }
   };
 
-  // 处理第二页的表头和内容
+  // 处理第二��的表头和内容
   const addSecondPage = (
     pdf: jsPDF,
     remainingImgData: string,
@@ -343,7 +344,7 @@ function OrderList() {
           allowTaint: true,
         });
 
-        // 获表格行的位置信息
+        // 获表格行的置信息
         const tableRows = orderElement.querySelectorAll('tbody tr');
         const rowPositions = Array.from(tableRows).map(row => {
           const rect = (row as HTMLElement).getBoundingClientRect();
@@ -530,7 +531,7 @@ function OrderList() {
         )
       );
 
-      pdf.save(`订单列表_${new Date().toLocaleDateString()}.pdf`);
+      pdf.save(`销售明细_${new Date().toLocaleDateString()}.pdf`);
       
       // 重新获取最新数据
       await fetchOrders();
@@ -585,7 +586,7 @@ function OrderList() {
 
   const renderStatusButton = (order: OrderType) => {
     const statusOptions = [
-      { value: 10, label: '待发货' },
+      { value: 10, label: '发货' },
       { value: 40, label: '运送中' },
       { value: 50, label: '已完成' },
       { value: 80, label: '已取消' }
@@ -612,6 +613,74 @@ function OrderList() {
     );
   };
 
+  const exportToExcel = async (selectedOnly: boolean) => {
+    try {
+      setExporting(true);
+      
+      // 获取要导出的订单
+      const ordersToExport = selectedOnly 
+        ? orders.filter(order => selectedOrders.has(order._id))
+        : orders;
+        
+      // 转换数据为Excel格式
+      const excelData = ordersToExport.flatMap(order => 
+        order.goodsList.map(goods => ({
+          '单号': order.orderNo,
+          '仓库': '主仓库',
+          '客户编码': order._openid,
+          '客户': order.userStoreName || '未知店家',
+          '业务员': order.salesPerson || '',
+          '配送业务员': '',
+          '销售/退货': '销售',
+          '日期': formatDate(String(order.createTime)),
+          '备注': '',
+          '操作人': '',
+          '产品名称': goods.goodsName,
+          '商品编码': goods.spuId,
+          '生产日期': '',
+          '数量': goods.quantity,
+          '单价': goods.price / 100,
+          '金额': (goods.price * goods.quantity) / 100,
+          '明细备注': ''
+        }))
+      );
+
+      // 创建工作簿
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      
+      // 添加工作表到工作簿
+      XLSX.utils.book_append_sheet(wb, ws, '销售明细');
+      
+      // 导出文件
+      XLSX.writeFile(wb, `销售明细_${new Date().toLocaleDateString()}.xlsx`);
+
+      // 更新导出状态
+      const exportedOrderIds = selectedOnly 
+        ? Array.from(selectedOrders)
+        : orders.map(order => order._id);
+
+      await Promise.all(
+        exportedOrderIds.map(orderId => 
+          updateOrderExportStatus(orderId, true)
+        )
+      );
+
+      // 重新获取数据
+      await fetchOrders();
+      
+    } catch (error) {
+      console.error("Excel导出失败:", error);
+      alert("Excel导出失败，请重试");
+    } finally {
+      setExporting(false);
+      if (selectedOnly) {
+        setSelectMode(false);
+        setSelectedOrders(new Set());
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -631,7 +700,7 @@ function OrderList() {
   if (!orders.length) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">订单列表</h1>
+        <h1 className="text-2xl font-bold mb-6">销售明细</h1>
         <div className="text-center text-gray-500">暂无订单数据</div>
       </div>
     );
@@ -641,7 +710,7 @@ function OrderList() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-2 py-4">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-4xl font-bold text-gray-800">订单列表</h1>
+          <h1 className="text-4xl font-bold text-gray-800">销售明细</h1>
           <div className="space-x-4">
             <button
               onClick={toggleSelectMode}
@@ -674,6 +743,13 @@ function OrderList() {
                 >
                   {exporting ? "导出中..." : `导出所选(${selectedOrders.size})`}
                 </button>
+                <button
+                  onClick={() => exportToExcel(true)}
+                  disabled={exporting || selectedOrders.size === 0}
+                  className="bg-blue-600 text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition duration-200 disabled:bg-gray-400"
+                >
+                  {exporting ? "导出中..." : `导出Excel(${selectedOrders.size})`}
+                </button>
               </>
             )}
             {!selectMode && (
@@ -683,6 +759,15 @@ function OrderList() {
                 className="bg-green-600 text-white rounded-lg px-6 py-2 hover:bg-green-700 transition duration-200 disabled:bg-gray-400"
               >
                 {exporting ? "导出中..." : "导出全部"}
+              </button>
+            )}
+            {!selectMode && (
+              <button
+                onClick={() => exportToExcel(false)}
+                disabled={exporting}
+                className="bg-blue-600 text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition duration-200 disabled:bg-gray-400"
+              >
+                {exporting ? "导出中..." : "导出Excel"}
               </button>
             )}
           </div>

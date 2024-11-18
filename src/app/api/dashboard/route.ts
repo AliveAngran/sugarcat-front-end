@@ -46,6 +46,7 @@ interface Order {
   paymentAmount: number;
   goodsList: OrderItem[];
   receiverAddress?: string;
+  userStoreName?: string;
 }
 
 // 确保 CATEGORY_NAMES 有正确的类型定义
@@ -80,6 +81,12 @@ interface BrandSalesData {
 interface CategoryTrendData {
   total: number;
   categories: Record<string, number>;
+}
+
+// 定义统计数据的接口
+interface StoreStats {
+  orderCount: number;
+  totalAmount: number;
 }
 
 export async function GET() {
@@ -395,6 +402,53 @@ export async function GET() {
         return acc;
       }, [] as Array<{ customerPercentage: number; revenuePercentage: number }>);
 
+    // 获取所有相关用户的 openid
+    const openids = Array.from(new Set(orders.map(order => order._openid)));
+
+    // 批量获取用户信息
+    const usersResult = await db.collection('users')
+      .where({
+        _openid: _.in(openids)
+      })
+      .limit(1000)
+      .get();
+
+    // 创建用户信息映射
+    const userMap = new Map(
+      usersResult.data.map(user => [
+        user._openid,
+        user.userStoreName || "未知店家"
+      ])
+    );
+
+    // 修改计算店家订单统计的逻辑
+    const storeOrderStats = orders.reduce((acc, order) => {
+      if (order.payStatus === 'PAID' && order.orderStatus !== 80) {
+        const storeName = userMap.get(order._openid) || "未知店家";
+        if (!acc[storeName]) {
+          acc[storeName] = {
+            orderCount: 0,
+            totalAmount: 0
+          };
+        }
+        acc[storeName].orderCount += 1;
+        acc[storeName].totalAmount += order.paymentAmount;
+      }
+      return acc;
+    }, {} as Record<string, { orderCount: number; totalAmount: number }>);
+
+    // 转换为数组并排序
+    const storeStats = (Object.entries(storeOrderStats) as [string, StoreStats][])
+      .map(([store, stats]) => ({
+        storeName: store,
+        orderCount: stats.orderCount,
+        totalAmount: stats.totalAmount
+      }))
+      .sort((a, b) => b.orderCount - a.orderCount);
+
+    // 计算店家总数
+    const totalStores = storeStats.length;
+
     return NextResponse.json({
       success: true,
       data: {
@@ -462,7 +516,11 @@ export async function GET() {
               amount
             })),
           customerGrowth: dailyCustomerGrowth,
-          customerConcentration
+          customerConcentration,
+          storeAnalysis: {
+            totalStores,
+            storeStats
+          }
         }
       }
     });

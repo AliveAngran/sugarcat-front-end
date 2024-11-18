@@ -85,6 +85,14 @@ interface DashboardData {
       customerPercentage: number;
       revenuePercentage: number;
     }>;
+    storeAnalysis: {
+      totalStores: number;
+      storeStats: Array<{
+        storeName: string;
+        orderCount: number;
+        totalAmount: number;
+      }>;
+    };
   };
 }
 
@@ -715,6 +723,127 @@ export default function Dashboard() {
                     ))}
                 </tbody>
               </table>
+            </div>
+          </motion.div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="lg:col-span-2 bg-black/40 backdrop-blur-md rounded-xl p-6 border border-gray-800/50 hover:border-blue-900/50 transition-all duration-300 hover:shadow-[0_0_25px_rgba(59,130,246,0.2)]"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">店家订单分析</h2>
+              <div className="text-sm text-blue-400">
+                总店家数: {data.additionalMetrics.storeAnalysis.totalStores}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* 订单数量柱状图 */}
+              <div className="h-[400px]">
+                <Bar
+                  data={{
+                    labels: data.additionalMetrics.storeAnalysis.storeStats.map(store => store.storeName),
+                    datasets: [{
+                      label: '订单数量',
+                      data: data.additionalMetrics.storeAnalysis.storeStats.map(store => store.orderCount),
+                      backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                      borderRadius: 6,
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y' as const,
+                    scales: {
+                      x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: 'rgba(255, 255, 255, 0.8)' }
+                      },
+                      y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: 'rgba(255, 255, 255, 0.8)' }
+                      }
+                    },
+                    plugins: {
+                      legend: {
+                        labels: { color: 'rgba(255, 255, 255, 0.8)' }
+                      }
+                    }
+                  }}
+                />
+              </div>
+
+              {/* 销售金额柱状图 */}
+              <div className="h-[400px]">
+                <Bar
+                  data={{
+                    labels: data.additionalMetrics.storeAnalysis.storeStats.map(store => store.storeName),
+                    datasets: [{
+                      label: '销售金额',
+                      data: data.additionalMetrics.storeAnalysis.storeStats.map(store => store.totalAmount / 100),
+                      backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                      borderRadius: 6,
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y' as const,
+                    scales: {
+                      x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { 
+                          color: 'rgba(255, 255, 255, 0.8)',
+                          callback: (value) => `¥${value}`
+                        }
+                      },
+                      y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: 'rgba(255, 255, 255, 0.8)' }
+                      }
+                    },
+                    plugins: {
+                      legend: {
+                        labels: { color: 'rgba(255, 255, 255, 0.8)' }
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: (context) => `销售额: ¥${context.raw}`
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
+
+              {/* 详细数据表格 */}
+              <div className="lg:col-span-2 overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-gray-400 border-b border-gray-700">
+                      <th className="pb-2 text-left">店家名称</th>
+                      <th className="pb-2 text-right">订单数量</th>
+                      <th className="pb-2 text-right">销售金额</th>
+                      <th className="pb-2 text-right">平均订单金额</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.additionalMetrics.storeAnalysis.storeStats.map((store) => (
+                      <tr key={store.storeName} className="border-b border-gray-700 hover:bg-gray-700/50">
+                        <td className="py-2">{store.storeName}</td>
+                        <td className="py-2 text-right">{store.orderCount}</td>
+                        <td className="py-2 text-right">¥{(store.totalAmount / 100).toFixed(2)}</td>
+                        <td className="py-2 text-right">
+                          ¥{(store.totalAmount / (store.orderCount * 100)).toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </motion.div>
         </div>
