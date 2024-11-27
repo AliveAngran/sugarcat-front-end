@@ -41,7 +41,8 @@ export async function GET() {
         user._openid,
         {
           userStoreName: user.userStoreName || "未知店家",
-          salesPerson: user.salesPerson || "未知"
+          salesPerson: user.salesPerson || "未知",
+          phoneNumber: user.phoneNumber || ""
         }
       ])
     );
@@ -80,7 +81,8 @@ export async function GET() {
     const processedOrders = ordersResult.data.map((order: any) => {
       const userInfo = userMap.get(order._openid) || {
         userStoreName: "未知店家",
-        salesPerson: "未知"
+        salesPerson: "未知",
+        phoneNumber: ""
       };
 
       const processedGoodsList = order.goodsList.map((goods: any) => {
@@ -105,6 +107,7 @@ export async function GET() {
         ...order,
         userStoreName: userInfo.userStoreName,
         salesPerson: userInfo.salesPerson,
+        userPhoneNumber: userInfo.phoneNumber,
         goodsList: processedGoodsList
       };
     });

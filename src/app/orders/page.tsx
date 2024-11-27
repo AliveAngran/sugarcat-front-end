@@ -94,6 +94,7 @@ type OrderType = {
   receiverAddress: string;
   createTime: string | number;
   userStoreName?: string;
+  userPhoneNumber?: string;
   goodsList: GoodsWithDesc[];
   _openid: string;
   salesPerson?: string;
@@ -240,7 +241,7 @@ function OrderList() {
     }
   };
 
-  // 处理第二��的表头和内容
+  // 处理第二的表头和内容
   const addSecondPage = (
     pdf: jsPDF,
     remainingImgData: string,
@@ -670,7 +671,7 @@ function OrderList() {
       await fetchOrders();
       
     } catch (error) {
-      console.error("Excel导出失败:", error);
+      console.error("Excel��出失败:", error);
       alert("Excel导出失败，请重试");
     } finally {
       setExporting(false);
@@ -833,7 +834,16 @@ function OrderList() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
                 <div className="flex">
                   <span className="font-semibold w-20">店家名：</span>
-                  <span>{order.userStoreName || "未知店家"}</span>
+                  <span>
+                    {order.userStoreName || "未知店家"}
+                    {order.userPhoneNumber && (
+                      <span className="ml-2">
+                        {order.userPhoneNumber === order.receiverPhone 
+                          ? "" 
+                          : ` ${order.userPhoneNumber}`}
+                      </span>
+                    )}
+                  </span>
                 </div>
                 <div className="flex">
                   <span className="font-semibold w-20">收货人：</span>
