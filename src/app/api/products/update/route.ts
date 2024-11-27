@@ -25,6 +25,8 @@ export async function POST(request: Request) {
         desc: product.desc,
         minBuyNum: product.minBuyNum,
         unit: product.unit,
+        minSalePrice: product.price,
+        maxLinePrice: product.originPrice,
         shelfLife: product.shelfLife,
         origin: product.origin,
         brand: product.brand,
