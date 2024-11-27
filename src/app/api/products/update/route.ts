@@ -14,6 +14,7 @@ export async function POST(request: Request) {
 
     const db = cloudbase.database();
     
+    // 更新数据库
     await db.collection('spu_db')
       .doc(product._id)
       .update({

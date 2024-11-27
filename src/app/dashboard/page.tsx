@@ -93,7 +93,31 @@ interface DashboardData {
         totalAmount: number;
       }>;
     };
+    salesmanStats: Array<{
+      salesman: string;
+      totalAmount: number;
+      orderCount: number;
+      storeCount: number;
+      newStoreCount: number;
+      repurchaseRate: number;
+      repurchaseCount: number;
+      repurchaseStoreCount: number;
+      averageAmountPerStore: number;
+    }>;
   };
+}
+
+// 更新 SalesmanStat 接口定义
+interface SalesmanStat {
+  salesman: string;
+  totalAmount: number;
+  orderCount: number;
+  storeCount: number;
+  newStoreCount: number;
+  repurchaseRate: number;
+  repurchaseCount: number;
+  repurchaseStoreCount: number;
+  averageAmountPerStore: number;
 }
 
 export default function Dashboard() {
@@ -847,6 +871,94 @@ export default function Dashboard() {
             </div>
           </motion.div>
         </div>
+
+        <motion.div className="lg:col-span-2 bg-black/40 backdrop-blur-md rounded-xl p-6 border border-gray-800/50 hover:border-blue-900/50 transition-all duration-300">
+          <h2 className="text-xl font-bold mb-4">业务员业绩分析</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 业务员业绩对比图表 */}
+            {data.additionalMetrics.salesmanStats && data.additionalMetrics.salesmanStats.length > 0 ? (
+              <div className="h-[400px]">
+                <Bar
+                  data={{
+                    labels: data.additionalMetrics.salesmanStats.map(s => s.salesman),
+                    datasets: [
+                      {
+                        label: '销售总额',
+                        data: data.additionalMetrics.salesmanStats.map(s => s.totalAmount / 100),
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        yAxisID: 'y'
+                      },
+                      {
+                        label: '店家数量',
+                        data: data.additionalMetrics.salesmanStats.map(s => s.storeCount),
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)', 
+                        yAxisID: 'y1'
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    scales: {
+                      y: {
+                        type: 'linear',
+                        position: 'left',
+                        title: {
+                          display: true,
+                          text: '销售额(元)'
+                        }
+                      },
+                      y1: {
+                        type: 'linear',
+                        position: 'right',
+                        title: {
+                          display: true,
+                          text: '店家数量'
+                        },
+                        grid: {
+                          drawOnChartArea: false
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[400px]">
+                <p className="text-gray-500">暂无业务员数据</p>
+              </div>
+            )}
+
+            {/* 业务员详细数据表格 */}
+            {data.additionalMetrics.salesmanStats && data.additionalMetrics.salesmanStats.length > 0 ? (
+              <div className="overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-gray-400 border-b border-gray-700">
+                      <th className="pb-2 text-left">业务员</th>
+                      <th className="pb-2 text-right">总店家数</th>
+                      <th className="pb-2 text-right">新增店家</th>
+                      <th className="pb-2 text-right">销售额</th>
+                      <th className="pb-2 text-right">复购次数</th>
+                      <th className="pb-2 text-right">复购率</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.additionalMetrics.salesmanStats.map((stat: SalesmanStat) => (
+                      <tr key={stat.salesman} className="border-b border-gray-700">
+                        <td className="py-2">{stat.salesman}</td>
+                        <td className="py-2 text-right">{stat.storeCount}</td>
+                        <td className="py-2 text-right">{stat.newStoreCount}</td>
+                        <td className="py-2 text-right">¥{(stat.totalAmount / 100).toFixed(2)}</td>
+                        <td className="py-2 text-right">{stat.repurchaseCount}</td>
+                        <td className="py-2 text-right">{stat.repurchaseRate}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </div>
+        </motion.div>
       </div>
 
       <style jsx global>{`

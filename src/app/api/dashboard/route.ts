@@ -7,6 +7,11 @@ const _ = cloudbase.database().command;
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// 在文件开头定义通用的时间变量
+const currentDate = new Date();
+const thirtyDaysAgoTimestamp = currentDate.getTime() - 30 * 24 * 60 * 60 * 1000;
+const thirtyDaysAgoDate = new Date(thirtyDaysAgoTimestamp);
+
 // 地址解析和归类函数
 function parseAddress(address: string) {
   // 提取市级地址
@@ -87,7 +92,29 @@ interface CategoryTrendData {
 interface StoreStats {
   orderCount: number;
   totalAmount: number;
+  salesPerson: string;
 }
+
+// 修改用户信息映射的数据结构
+interface UserInfo {
+  userStoreName: string;
+  salesPerson: string;
+  createTime: string | Date;
+}
+
+// 添加类型定义
+interface StoreOrderStats {
+  [store: string]: StoreStats;
+}
+
+type SalesmanData = {
+  totalAmount: number;
+  orderCount: number;
+  stores: Set<string>;
+  newStores: Set<string>;
+  repurchaseStores: Set<string>;
+  orderDates: Map<string, Set<string>>;
+};
 
 export async function GET() {
   try {
@@ -172,7 +199,7 @@ export async function GET() {
       .sort((a, b) => b[1].salesAmount - a[1].salesAmount)
       .slice(0, 20);
 
-    // 计算每周最佳销售时段分布
+    // 算每周最佳销售时段分布
     const hourlyDistribution = orders.reduce((acc, order) => {
       const hour = new Date(order.createTime).getHours();
       acc[hour] = (acc[hour] || 0) + order.paymentAmount;
@@ -192,12 +219,9 @@ export async function GET() {
     }, {} as Record<string, number>);
 
     // 计算滞销商品分析
-    const now = new Date().getTime();
-    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
-    
     const productSalesInLast30Days = products.map(product => {
       const sales = orders
-        .filter(order => new Date(order.createTime).getTime() > thirtyDaysAgo)
+        .filter(order => new Date(order.createTime).getTime() > thirtyDaysAgoTimestamp)
         .reduce((sum, order) => {
           const item = order.goodsList.find((item: OrderItem) => item.spuId === product.spuId);
           return sum + (item?.quantity || 0);
@@ -211,7 +235,7 @@ export async function GET() {
       };
     }).sort((a, b) => a.sales - b.sales);
 
-    // 计算客户分析
+    // 计算客户分
     const customerAnalysis = orders.reduce((acc, order) => {
       const customerId = order._openid;
       if (!acc[customerId]) {
@@ -413,42 +437,128 @@ export async function GET() {
       .limit(1000)
       .get();
 
-    // 创建用户信息映射
-    const userMap = new Map(
+    // 修改用户信息映射的数据结构
+    const userMap = new Map<string, UserInfo>(
       usersResult.data.map(user => [
         user._openid,
-        user.userStoreName || "未知店家"
+        {
+          userStoreName: user.userStoreName || "未知店家",
+          salesPerson: user.salesPerson || "未知业务员",
+          createTime: user.createTime || new Date()
+        }
       ])
     );
 
-    // 修改计算店家订单统计的逻辑
+    // 1. 先计算店家订单统计
     const storeOrderStats = orders.reduce((acc, order) => {
       if (order.payStatus === 'PAID' && order.orderStatus !== 80) {
-        const storeName = userMap.get(order._openid) || "未知店家";
+        const userInfo = userMap.get(order._openid);
+        const storeName = userInfo?.userStoreName || "未知店家";
         if (!acc[storeName]) {
           acc[storeName] = {
             orderCount: 0,
-            totalAmount: 0
+            totalAmount: 0,
+            salesPerson: userInfo?.salesPerson || "未知业务员"
           };
         }
         acc[storeName].orderCount += 1;
         acc[storeName].totalAmount += order.paymentAmount;
       }
       return acc;
-    }, {} as Record<string, { orderCount: number; totalAmount: number }>);
+    }, {} as Record<string, { 
+      orderCount: number; 
+      totalAmount: number;
+      salesPerson: string;
+    }>);
 
-    // 转换为数组并排序
+    // 2. 生成storeStats数组（确保在使用之前定义）
     const storeStats = (Object.entries(storeOrderStats) as [string, StoreStats][])
       .map(([store, stats]) => ({
         storeName: store,
         orderCount: stats.orderCount,
-        totalAmount: stats.totalAmount
+        totalAmount: stats.totalAmount,
+        salesPerson: stats.salesPerson
       }))
       .sort((a, b) => b.orderCount - a.orderCount);
 
-    // 计算店家总数
+    // 3. 计算店家总数
     const totalStores = storeStats.length;
 
+    // 4. 计算业务员分析
+    const salesmanAnalysis = orders.reduce((acc, order) => {
+      const userInfo = userMap.get(order._openid);
+      if (!userInfo) return acc;
+      
+      const salesPerson = userInfo.salesPerson;
+      const storeName = userInfo.userStoreName;
+      
+      if (!acc[salesPerson]) {
+        acc[salesPerson] = {
+          totalAmount: 0,
+          orderCount: 0,
+          stores: new Set<string>(),
+          newStores: new Set<string>(),
+          repurchaseStores: new Set<string>(),
+          orderDates: new Map<string, Set<string>>()
+        };
+      }
+      
+      acc[salesPerson].totalAmount += order.paymentAmount;
+      acc[salesPerson].orderCount += 1;
+      acc[salesPerson].stores.add(storeName);
+      
+      if (!acc[salesPerson].orderDates.has(storeName)) {
+        acc[salesPerson].orderDates.set(storeName, new Set());
+      }
+      const orderDate = new Date(order.createTime).toISOString().split('T')[0];
+      acc[salesPerson].orderDates.get(storeName)?.add(orderDate);
+      
+      return acc;
+    }, {} as Record<string, {
+      totalAmount: number;
+      orderCount: number;
+      stores: Set<string>;
+      newStores: Set<string>;
+      repurchaseStores: Set<string>;
+      orderDates: Map<string, Set<string>>;
+    }>);
+
+    // 5. 计算新店和复购数据
+    (Object.entries(salesmanAnalysis) as [string, SalesmanData][]).forEach(([salesman, data]) => {
+      data.stores.forEach(storeName => {
+        const userInfo = Array.from(userMap.values())
+          .find(info => info.userStoreName === storeName);
+        
+        if (userInfo && new Date(userInfo.createTime) > thirtyDaysAgoDate) {
+          data.newStores.add(storeName);
+        }
+      });
+      
+      data.orderDates.forEach((dates, store) => {
+        if (dates.size > 1) {
+          data.repurchaseStores.add(store);
+        }
+      });
+    });
+
+    // 6. 格式化业务员统计数据
+    const salesmanStats = (Object.entries(salesmanAnalysis) as [string, SalesmanData][])
+      .filter(([salesman]) => salesman !== "未知业务员")
+      .map(([salesman, data]) => ({
+        salesman,
+        totalAmount: data.totalAmount,
+        orderCount: data.orderCount,
+        storeCount: data.stores.size,
+        newStoreCount: data.newStores.size,
+        repurchaseStoreCount: data.repurchaseStores.size,
+        repurchaseCount: Array.from(data.orderDates.values())
+          .reduce((sum, dates) => sum + Math.max(0, dates.size - 1), 0), // 计算总复购次数
+        averageAmountPerStore: data.totalAmount / data.stores.size || 0,
+        repurchaseRate: (data.repurchaseStores.size / data.stores.size * 100).toFixed(1)
+      }))
+      .sort((a, b) => b.totalAmount - a.totalAmount);
+
+    // 7. 返回数据
     return NextResponse.json({
       success: true,
       data: {
@@ -520,7 +630,8 @@ export async function GET() {
           storeAnalysis: {
             totalStores,
             storeStats
-          }
+          },
+          salesmanStats
         }
       }
     });

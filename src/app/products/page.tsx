@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { pinyin } from 'pinyin-pro';
 import * as XLSX from 'xlsx';
 import { CATEGORY_MAPPING, CATEGORY_NAMES, getOriginalCategory } from '@/constants/categories';
+import { uploadImageToCOS } from '@/utils/cos';
 
 interface Product {
   _id?: string;
@@ -137,6 +138,7 @@ function ProductManagement() {
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [importedProducts, setImportedProducts] = useState<any[]>([]);
   const [currentImportIndex, setCurrentImportIndex] = useState<number>(-1);
+  const [isUploading, setIsUploading] = useState(false);
 
   // 修改编辑商品的函数
   const handleUpdateProduct = async () => {
@@ -173,7 +175,7 @@ function ProductManagement() {
     }
   };
 
-  // 添加 generateImageUrl 函数在这里
+  // 修改 generateImageUrl 函数
   const generateImageUrl = (title: string, isPrimary: boolean = false) => {
     const brand = newProduct.brand.toLowerCase();
     const spuId = newProduct.spuId;
@@ -186,20 +188,22 @@ function ProductManagement() {
     if (isPrimary) {
       // 主图使用 -zt 后缀
       const fileName = `${brandFolder}/${spuId}-ZT.jpg`;
-      setNewProduct({...newProduct, primaryImage: baseUrl + fileName});
+      const imageUrl = baseUrl + fileName;
+      
+      // 设置主图的同时，确保它也是第一张附图
+      setNewProduct({
+        ...newProduct, 
+        primaryImage: imageUrl,
+        images: [imageUrl, ...newProduct.images.slice(1)] // 保留其他附图
+      });
     } else {
-      // 附图：第一张用 -zt，之后的用 -1, -2, -3...
+      // 附图：从第二张开始用数字编号 -1, -2, -3...
       const currentImages = newProduct.images;
       let fileNameWithIndex;
       
-      if (currentImages.length === 0) {
-        // 第一张附图用 -zt
-        fileNameWithIndex = `${brandFolder}/${spuId}-ZT.jpg`;
-      } else {
-        // 后续附图用数字编号
-        const nextIndex = currentImages.length;
-        fileNameWithIndex = `${brandFolder}/${spuId}-${nextIndex}.jpg`;
-      }
+      // 跳过第一个索引，因为第一张总是和主图一样
+      const nextIndex = currentImages.length;
+      fileNameWithIndex = `${brandFolder}/${spuId}-${nextIndex}.jpg`;
       
       const newImages = [...currentImages, baseUrl + fileNameWithIndex];
       setNewProduct({...newProduct, images: newImages});
@@ -495,6 +499,61 @@ function ProductManagement() {
     }
   }, [editingProduct]);
 
+  // 处理主图上传
+  const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingProduct) return;
+
+    setIsUploading(true);
+    try {
+      const imageUrl = await uploadImageToCOS(file, editingProduct.spuId, true) as string;
+      setEditingProduct({
+        ...editingProduct,
+        primaryImage: imageUrl,
+        images: [imageUrl, ...editingProduct.images.slice(1)] // 保持第一张图和主图一致，保留其他附图
+      });
+    } catch (error) {
+      console.error('上传主图失败:', error);
+      alert('上传主图失败，请重试');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // 处理附图上传
+  const handleAdditionalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingProduct) return;
+
+    setIsUploading(true);
+    try {
+      const imageUrl = await uploadImageToCOS(
+        file, 
+        editingProduct.spuId, 
+        false, 
+        editingProduct.images.length
+      ) as string;
+      setEditingProduct({
+        ...editingProduct,
+        images: [...editingProduct.images, imageUrl]
+      });
+    } catch (error) {
+      console.error('上传附图失败1:', error);
+      alert('上传附图失败，请重试1');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // 删除附图
+  const handleRemoveImage = (index: number) => {
+    if (!editingProduct) return;
+    setEditingProduct({
+      ...editingProduct,
+      images: editingProduct.images.filter((_, i) => i !== index)
+    });
+  };
+
   if (!isAuthorized) {
     return null; // 未授权时不渲染任何内容，等待重定向
   }
@@ -785,6 +844,99 @@ function ProductManagement() {
                       ))}
                     </div>
                   </div>
+
+                  {/* 在分类选择区域后面添加图片管理模块 */}
+                  <div className="col-span-2 mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      商品图片
+                    </label>
+                    
+                    {/* 主图 */}
+                    <div className="mb-4 p-4 border rounded-lg">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">主图</label>
+                      <div className="flex items-center space-x-4">
+                        {editingProduct.primaryImage && (
+                          <div className="relative">
+                            <img 
+                              src={loadcos(editingProduct.primaryImage)}
+                              alt="主图" 
+                              className="w-24 h-24 object-cover rounded-lg border"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            value={editingProduct.primaryImage}
+                            onChange={(e) => setEditingProduct({
+                              ...editingProduct,
+                              primaryImage: e.target.value
+                            })}
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 mb-2"
+                            placeholder="输入主图URL或上传图片"
+                          />
+                          <label className="block">
+                            <span className="sr-only">选择主图文件</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleMainImageUpload}
+                              disabled={isUploading}
+                              className="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 附图 */}
+                    <div className="p-4 border rounded-lg">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">附图</label>
+                      <div className="grid grid-cols-4 gap-4 mb-4">
+                        {editingProduct.images.map((image, index) => (
+                          <div key={index} className="relative">
+                            <img 
+                              src={loadcos(image)}
+                              alt={`附图 ${index + 1}`} 
+                              className="w-24 h-24 object-cover rounded-lg border"
+                            />
+                            <button
+                              onClick={() => handleRemoveImage(index)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAdditionalImageUpload}
+                          disabled={isUploading}
+                          className="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100"
+                        />
+                        {isUploading && (
+                          <div className="text-sm text-gray-500">
+                            上传中...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1064,49 +1216,6 @@ function ProductManagement() {
                         <span className="text-sm">{name}</span>
                       </label>
                     ))}
-                  </div>
-                </div>
-
-                {/* 图片信息 */}
-                <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                  <h3 className="font-medium text-gray-900">图片信息</h3>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">主图URL</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newProduct.primaryImage}
-                        onChange={(e) => setNewProduct({...newProduct, primaryImage: e.target.value})}
-                        className="mt-1 flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => generateImageUrl(newProduct.title, true)}
-                        className="mt-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                      >
-                        生成URL
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">图片URL列表（每行一个URL）</label>
-                    <div className="flex gap-2 mb-2">
-                      <textarea
-                        value={newProduct.images.join('\n')}
-                        onChange={(e) => setNewProduct({...newProduct, images: e.target.value.split('\n').filter(url => url.trim())})}
-                        rows={4}
-                        className="mt-1 flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => generateImageUrl(newProduct.title, false)}
-                        className="mt-1 px-4 py-2 h-fit bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                      >
-                        添加URL
-                      </button>
-                    </div>
                   </div>
                 </div>
 
