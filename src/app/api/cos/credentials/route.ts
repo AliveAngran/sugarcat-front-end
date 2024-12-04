@@ -57,8 +57,8 @@ export async function GET() {
     // 获取临时密钥
     const result = await new Promise<CredentialData>((resolve, reject) => {
       STS.getCredential({
-        secretId: cosConfig.secretId as string,
-        secretKey: cosConfig.secretKey as string,
+        secretId: cosConfig.secretId!,
+        secretKey: cosConfig.secretKey!,
         proxy: cosConfig.proxy,
         durationSeconds: cosConfig.durationSeconds,
         policy: policy,
