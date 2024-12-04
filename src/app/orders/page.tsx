@@ -627,7 +627,7 @@ function OrderList() {
       const excelData = ordersToExport.flatMap(order => 
         order.goodsList.map(goods => ({
           '单号': order.orderNo,
-          '仓库': '主仓库',
+          '仓库': '1-浙江唐茂科技有限公司',
           '客户编码': order._openid,
           '客户': order.userStoreName || '未知店家',
           '业务员': order.salesPerson || '',
