@@ -71,9 +71,31 @@ export async function GET() {
       });
     });
 
+    // 检查凭证是否已过期
+    const now = Math.floor(Date.now() / 1000);
+    if (now >= result.expiredTime) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Credentials expired'
+      }, { 
+        status: 401,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      });
+    }
+
     return NextResponse.json({ 
       success: true, 
       credentials: result
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
   } catch (error: unknown) {
     console.error('获取临时密钥失败:', error);
