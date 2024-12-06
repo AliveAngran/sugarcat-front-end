@@ -2,11 +2,11 @@ import COS from 'cos-js-sdk-v5';
 
 // 初始化 COS 实例
 const cos = new COS({
-  getAuthorization: function (options, callback) {
-    fetch('/api/cos/credentials')
-      .then(response => response.json())
-      .then(data => {
-        console.log('Credentials response:', data);
+  getAuthorization: async function (options, callback) {
+    const fetchCredentials = async (retryCount = 0) => {
+      try {
+        const response = await fetch('/api/cos/credentials');
+        const data = await response.json();
         
         if (!data.success || !data.credentials) {
           throw new Error('Failed to get credentials');
@@ -14,25 +14,42 @@ const cos = new COS({
 
         const credentials = data.credentials;
         const startTime = Math.floor(Date.now() / 1000);
-        callback({
+        
+        return {
           TmpSecretId: credentials.credentials.tmpSecretId,
           TmpSecretKey: credentials.credentials.tmpSecretKey,
           SecurityToken: credentials.credentials.sessionToken,
           StartTime: startTime,
           ExpiredTime: credentials.expiredTime,
-        });
-      })
-      .catch(err => {
+        };
+      } catch (err) {
         console.error('获取临时密钥失败:', err);
-        const startTime = Math.floor(Date.now() / 1000);
-        callback({
-          TmpSecretId: '',
-          TmpSecretKey: '',
-          SecurityToken: '',
-          StartTime: startTime,
-          ExpiredTime: startTime + 1800,
-        });
+        
+        // 最多重试3次
+        if (retryCount < 3) {
+          console.log(`重试获取临时密钥 (${retryCount + 1}/3)...`);
+          await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒后重试
+          return fetchCredentials(retryCount + 1);
+        }
+        
+        throw err;
+      }
+    };
+
+    try {
+      const credentials = await fetchCredentials();
+      callback(credentials);
+    } catch (err) {
+      console.error('所有重试都失败:', err);
+      const startTime = Math.floor(Date.now() / 1000);
+      callback({
+        TmpSecretId: '',
+        TmpSecretKey: '',
+        SecurityToken: '',
+        StartTime: startTime,
+        ExpiredTime: startTime + 1800,
       });
+    }
   }
 });
 
