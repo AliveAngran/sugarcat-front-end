@@ -31,13 +31,36 @@ interface Product {
   isPutOnSale: boolean;
 }
 
-// 添加 loadcos 函数
+// 修改 loadcos 函数以支持多种URL格式
 const loadcos = (url: string) => {
+  console.log('Processing URL:', url);
+  
+  // 处理旧格式的cloud://格式URL
   if (url.indexOf('cloud://') === 0) {
     const first = url.indexOf('.');
     const end = url.indexOf('/', first);
-    return `https://${url.slice(first + 1, end)}.tcb.qcloud.la/${url.slice(end + 1, url.length)}`;
+    const bucket = url.slice(first + 1, end);
+    const filepath = url.slice(end + 1);
+    const region = 'ap-guangzhou';
+    const timestamp = Date.now();
+    
+    const newUrl = `https://${bucket}.cos.${region}.myqcloud.com/${filepath}?t=${timestamp}`;
+    console.log('Converted URL:', newUrl);
+    return newUrl;
   }
+  
+  // 如果已经是新格式的URL，添加时间戳（如果没有的话）
+  if (url.indexOf('https://') === 0 && url.indexOf('.cos.') > -1) {
+    if (url.indexOf('?t=') === -1) {
+      const timestamp = Date.now();
+      const newUrl = `${url}?t=${timestamp}`;
+      console.log('Added timestamp to URL:', newUrl);
+      return newUrl;
+    }
+    return url;
+  }
+  
+  // 如果是其他格式的URL，直接返回
   return url;
 };
 
@@ -98,6 +121,15 @@ interface NewProduct {
   spuStockQuantity: number;
 }
 
+// 在文件顶部添加类型声明
+declare module 'react' {
+  interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
+    // 扩展 webkitdirectory 和 directory 属性
+    webkitdirectory?: string;
+    directory?: string;
+  }
+}
+
 function ProductManagement() {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -139,6 +171,13 @@ function ProductManagement() {
   const [importedProducts, setImportedProducts] = useState<any[]>([]);
   const [currentImportIndex, setCurrentImportIndex] = useState<number>(-1);
   const [isUploading, setIsUploading] = useState(false);
+  const [isBatchUploadOpen, setIsBatchUploadOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({});
+  const [uploadResults, setUploadResults] = useState<{
+    success: number;
+    failed: number;
+    total: number;
+  }>({ success: 0, failed: 0, total: 0 });
 
   // 修改编辑商品的函数
   const handleUpdateProduct = async () => {
@@ -164,7 +203,7 @@ function ProductManagement() {
       if (result.success) {
         setIsEditModalOpen(false);
         // 直接重新获取最新数据
-        window.location.reload(); // 使用页面刷新来确保获取最新数据
+        window.location.reload(); // 使用页面刷新来确保取最新数据
         alert('商品更新成功');
       } else {
         throw new Error(result.error || '更新失败');
@@ -201,7 +240,7 @@ function ProductManagement() {
       const currentImages = newProduct.images;
       let fileNameWithIndex;
       
-      // 跳过第一个索引，因为第一张总是和主图一样
+      // 跳过一个索引，因为第一��总是和主图一样
       const nextIndex = currentImages.length;
       fileNameWithIndex = `${brandFolder}/${spuId}-${nextIndex}.jpg`;
       
@@ -439,7 +478,7 @@ function ProductManagement() {
         brand: '',
         price: String(nextRow['小程序价格'] || nextRow['小程序价'] || '0'),
         minSalePrice: String(nextRow['小程序价格'] || nextRow['小程序价'] || '0'),
-        maxLinePrice: String(nextRow['零售价'] || nextRow['建议零售价'] || '0'),
+        maxLinePrice: String(nextRow['���售价'] || nextRow['建议零售价'] || '0'),
         originPrice: String(nextRow['零售价'] || nextRow['建议零售价'] || '0'),
         minBuyNum: parseInt(String(nextRow['起订量'])) || 1,
         unit: nextRow['单位'] || '',
@@ -520,7 +559,7 @@ function ProductManagement() {
     }
   };
 
-  // 处理附图上传
+  // 修改处理附图上传的函数
   const handleAdditionalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingProduct) return;
@@ -530,16 +569,19 @@ function ProductManagement() {
       const imageUrl = await uploadImageToCOS(
         file, 
         editingProduct.spuId, 
-        false, 
-        editingProduct.images.length
+        false,
+        (progress) => {
+          // 处理上传进度
+          console.log('Upload progress:', progress);
+        }
       ) as string;
       setEditingProduct({
         ...editingProduct,
         images: [...editingProduct.images, imageUrl]
       });
     } catch (error) {
-      console.error('上传附图失败1:', error);
-      alert('上传附图失败，请重试1');
+      console.error('上传附图失败:', error);
+      alert('上传附图失败，请重试');
     } finally {
       setIsUploading(false);
     }
@@ -552,6 +594,129 @@ function ProductManagement() {
       ...editingProduct,
       images: editingProduct.images.filter((_, i) => i !== index)
     });
+  };
+
+  // 添加处理批量上传的函数
+  const handleBatchUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    setUploadResults({ success: 0, failed: 0, total: files.length });
+    setIsBatchUploadOpen(true);
+
+    const fileArray = Array.from(files);
+    const imageFiles = fileArray.filter(file => 
+      file.type.startsWith('image/') && 
+      (file.name.endsWith('-ZT.jpg') || file.name.endsWith('-ZT.png'))
+    );
+
+    for (const file of imageFiles) {
+      try {
+        // 从文件名中提取spuId
+        const spuId = file.name.split('-ZT')[0];
+        
+        // 更新进度
+        setUploadProgress(prev => ({
+          ...prev,
+          [file.name]: 0
+        }));
+
+        // 上传到COS
+        const imageUrl = await uploadImageToCOS(file, spuId, true);
+
+        // 查找并更新商品
+        const product = products.find(p => p.spuId === spuId);
+        if (product) {
+          await fetch('/api/products/update', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ...product,
+              primaryImage: imageUrl,
+              images: [imageUrl, ...product.images.slice(1)]
+            }),
+          });
+
+          setUploadResults(prev => ({
+            ...prev,
+            success: prev.success + 1
+          }));
+        } else {
+          throw new Error(`未找到商品: ${spuId}`);
+        }
+
+        // 更新进度为100%
+        setUploadProgress(prev => ({
+          ...prev,
+          [file.name]: 100
+        }));
+
+      } catch (error) {
+        console.error(`上传失败: ${file.name}`, error);
+        setUploadResults(prev => ({
+          ...prev,
+          failed: prev.failed + 1
+        }));
+      }
+    }
+  };
+
+  // 添加批量上传模态框组件
+  const BatchUploadModal = () => {
+    if (!isBatchUploadOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-[600px] max-h-[80vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">批量上传图片</h2>
+            <button 
+              onClick={() => setIsBatchUploadOpen(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              关闭
+            </button>
+          </div>
+
+          {/* 上传进度统计 */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex justify-between mb-2">
+              <span>总数: {uploadResults.total}</span>
+              <span className="text-green-600">成功: {uploadResults.success}</span>
+              <span className="text-red-600">失败: {uploadResults.failed}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ 
+                  width: `${((uploadResults.success + uploadResults.failed) / uploadResults.total) * 100}%`
+                }}
+              />
+            </div>
+          </div>
+
+          {/* 文件上传进度列表 */}
+          <div className="space-y-2">
+            {Object.entries(uploadProgress).map(([fileName, progress]) => (
+              <div key={fileName} className="flex items-center space-x-2">
+                <div className="flex-1 min-w-0">
+                  <div className="truncate text-sm">{fileName}</div>
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div 
+                      className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+                <span className="text-sm text-gray-500">{progress}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (!isAuthorized) {
@@ -634,6 +799,18 @@ function ProductManagement() {
                 accept=".xlsx,.xls"
                 className="hidden"
                 onChange={handleFileUpload}
+                onClick={(e) => (e.currentTarget.value = '')}
+              />
+            </label>
+            <label className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors cursor-pointer">
+              批量上传图片
+              <input
+                type="file"
+                webkitdirectory="true"
+                directory="true"
+                multiple
+                className="hidden"
+                onChange={handleBatchUpload}
                 onClick={(e) => (e.currentTarget.value = '')}
               />
             </label>
@@ -1238,6 +1415,8 @@ function ProductManagement() {
             </div>
           </div>
         )}
+
+        <BatchUploadModal />
       </div>
     </div>
   );
