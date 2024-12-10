@@ -671,7 +671,7 @@ function OrderList() {
       await fetchOrders();
       
     } catch (error) {
-      console.error("Excel��出失败:", error);
+      console.error("Excel导出失败:", error);
       alert("Excel导出失败，请重试");
     } finally {
       setExporting(false);

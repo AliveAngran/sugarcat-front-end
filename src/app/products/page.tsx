@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -44,7 +45,7 @@ const loadcos = (url: string) => {
     const region = 'ap-guangzhou';
     const timestamp = Date.now();
     
-    const newUrl = `https://${bucket}.cos.${region}.myqcloud.com/${filepath}?t=${timestamp}`;
+    const newUrl = `https://${bucket}.cos.${region}.myqcloud.com/pics_v2/pic_v2/${filepath}?t=${timestamp}`;
     console.log('Converted URL:', newUrl);
     return newUrl;
   }
@@ -178,6 +179,9 @@ function ProductManagement() {
     failed: number;
     total: number;
   }>({ success: 0, failed: 0, total: 0 });
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState('');
+  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
 
   // 修改编辑商品的函数
   const handleUpdateProduct = async () => {
@@ -240,7 +244,7 @@ function ProductManagement() {
       const currentImages = newProduct.images;
       let fileNameWithIndex;
       
-      // 跳过一个索引，因为第一��总是和主图一样
+      // 跳过一个索引，因为第一总是和主图一样
       const nextIndex = currentImages.length;
       fileNameWithIndex = `${brandFolder}/${spuId}-${nextIndex}.jpg`;
       
@@ -373,7 +377,7 @@ function ProductManagement() {
       }
     } catch (error) {
       console.error("添加商品失败:", error);
-      alert("添加失败，请重试");
+      alert("添加失败，请��试");
     }
   };
 
@@ -394,7 +398,7 @@ function ProductManagement() {
       const result = await response.json();
 
       if (result.success) {
-        // 更新商品列表
+        // 更商品列表
         setProducts(products.filter(p => p._id !== editingProduct?._id));
         // 闭所有模态框
         setIsDeleteConfirmOpen(false);
@@ -431,8 +435,8 @@ function ProductManagement() {
           etitle: '',
           desc: firstRow['规格型号'] || firstRow['规格'] || '',
           spuId: String(parseInt(firstRow['新条码'] || firstRow['条码'] || '0')),
-          brand: '',  // 可以从Excel文件名中提取
-          price: String(firstRow['小程序价格'] || firstRow['小程序价'] || '0'),
+          brand: '',  // 可以从Excel���件名中提取
+          price: String(firstRow['小程序价格'] || firstRow['小程序'] || '0'),
           minSalePrice: String(firstRow['小程序价格'] || firstRow['小程序价'] || '0'),
           maxLinePrice: String(firstRow['零售价'] || firstRow['建议零售价'] || '0'),
           originPrice: String(firstRow['零售价'] || firstRow['建议零售价'] || '0'),
@@ -471,14 +475,14 @@ function ProductManagement() {
       setSelectedNewCategories([]);
       
       const nextProductData = {
-        title: nextRow['商品名称'] || nextRow['产品'] || nextRow['产品名称'] || '',
+        title: nextRow['商品名称'] || nextRow['产品'] || nextRow['产称'] || '',
         etitle: '',
         desc: nextRow['规格型号'] || nextRow['规格'] || '',
         spuId: String(parseInt(nextRow['新条码'] || nextRow['条码'] || '0')),
         brand: '',
         price: String(nextRow['小程序价格'] || nextRow['小程序价'] || '0'),
         minSalePrice: String(nextRow['小程序价格'] || nextRow['小程序价'] || '0'),
-        maxLinePrice: String(nextRow['���售价'] || nextRow['建议零售价'] || '0'),
+        maxLinePrice: String(nextRow['售价'] || nextRow['建议零售价'] || '0'),
         originPrice: String(nextRow['零售价'] || nextRow['建议零售价'] || '0'),
         minBuyNum: parseInt(String(nextRow['起订量'])) || 1,
         unit: nextRow['单位'] || '',
@@ -553,7 +557,7 @@ function ProductManagement() {
       });
     } catch (error) {
       console.error('上传主图失败:', error);
-      alert('上传主图失败，请重试');
+      alert('上传主图失，请重试');
     } finally {
       setIsUploading(false);
     }
@@ -719,6 +723,133 @@ function ProductManagement() {
     );
   };
 
+  // 修改生成毛利��的处理函数
+  const handleGenerateGrossMarginImage = async (product: Product) => {
+    try {
+      if (product.images.length === 1 && product.images[0].includes('-ZT')) {
+        setCurrentProduct(product); // 设置当前商品
+
+        const response = await fetch('/api/products/generate-margin-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          body: JSON.stringify({
+            productId: product.spuId,
+            title: product.title,
+            price: product.price,
+            originPrice: product.originPrice,
+            grossMargin: ((parseFloat(product.originPrice) - parseFloat(product.price)) / parseFloat(product.originPrice) * 100).toFixed(1)
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: '生成毛利图失败' }));
+          throw new Error(errorData.error || '生成毛利图失败');
+        }
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || '生成毛利图失败');
+        }
+
+        // 显示预览图片
+        setPreviewImage(result.previewImage);
+        setPreviewModalOpen(true);
+      }
+    } catch (error) {
+      console.error('生成毛利图失败:', error);
+      alert(`生成毛利图失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
+  // 修改handleUploadMarginImage函数
+  const handleUploadMarginImage = async (productId: string, imageData: string) => {
+    try {
+      // 显示上传中状态
+      setIsUploading(true);
+
+      const response = await fetch('/api/products/upload-margin-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId,
+          imageData,
+          type: 'NJGG' // 标识这是毛利图
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('上传失败');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('毛利图上传成功！');
+        // 刷新商品列表
+        window.location.reload();
+      } else {
+        throw new Error(result.error || '上传失败');
+      }
+
+    } catch (error) {
+      console.error('上传毛利图失败:', error);
+      alert(`上传失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // 修改PreviewModal组件
+  const PreviewModal = ({ image, onClose, productId }: { image: string; onClose: () => void; productId: string }) => {
+    const [isUploading, setIsUploading] = useState(false);
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg max-w-2xl">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold">毛利图预览</h3>
+            <button 
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+              disabled={isUploading}
+            >
+              关闭
+            </button>
+          </div>
+          
+          <img src={image} alt="毛利图预览" className="max-w-full" />
+          
+          <div className="mt-4 flex justify-end space-x-4">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+              disabled={isUploading}
+            >
+              取消
+            </button>
+            <button
+              onClick={() => handleUploadMarginImage(productId, image)}
+              className={`px-4 py-2 text-white rounded-lg ${
+                isUploading 
+                  ? 'bg-blue-400 cursor-not-allowed' 
+                  : 'bg-blue-500 hover:bg-blue-600'
+              }`}
+              disabled={isUploading}
+            >
+              {isUploading ? '上传中...' : '确认上传'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!isAuthorized) {
     return null; // 未授权时不渲染任何内容，等待重定向
   }
@@ -749,7 +880,7 @@ function ProductManagement() {
               </button>
             </div>
 
-            {/* 分组显示品牌 */}
+            {/* 分显示品牌 */}
             <div className="py-2">
               {Array.from(groupedBrands.entries()).map(([initial, brandList]) => (
                 <div key={initial} className="mb-4">
@@ -834,7 +965,7 @@ function ProductManagement() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">条码</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">规格</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最小购买量</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最小购量</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
               </tr>
@@ -879,9 +1010,15 @@ function ProductManagement() {
                         setEditingProduct(product);
                         setIsEditModalOpen(true);
                       }}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-blue-600 hover:text-blue-900 mr-2"
                     >
                       编辑
+                    </button>
+                    <button
+                      onClick={() => handleGenerateGrossMarginImage(product)}
+                      className="text-green-600 hover:text-green-900"
+                    >
+                      生成毛利图
                     </button>
                   </td>
                 </tr>
@@ -930,7 +1067,7 @@ function ProductManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">品牌</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">牌</label>
                     <input
                       type="text"
                       value={editingProduct?.brand || ''}
@@ -992,7 +1129,7 @@ function ProductManagement() {
                   {/* 分类选择区域 */}
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      商品分类（可多选）
+                      商品分类可多选）
                     </label>
                     <div className="grid grid-cols-3 gap-2 p-4 border rounded-lg max-h-[200px] overflow-y-auto">
                       {Object.entries(CATEGORY_NAMES).map(([value, name]) => (
@@ -1117,14 +1254,14 @@ function ProductManagement() {
                 </div>
               </div>
 
-              {/* 修改底部按钮区域，添加删除按钮 */}
+              {/* 修改底部钮区域，添加删除按钮 */}
               <div className="p-6 border-t flex justify-between flex-shrink-0">
                 {/* 左侧放删除按钮 */}
                 <button
                   onClick={() => setIsDeleteConfirmOpen(true)}
                   className="px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600"
                 >
-                  删除商品
+                  除商品
                 </button>
 
                 {/* 右侧放取消和保存按钮 */}
@@ -1151,7 +1288,7 @@ function ProductManagement() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
             <div className="bg-white rounded-lg p-6 max-w-md w-full">
               <h3 className="text-xl font-bold mb-4">确认删除</h3>
-              <p className="mb-6">确定要删除商品 "{editingProduct?.title}" 吗？此操作不可撤销。</p>
+              <p className="mb-6">确定要删除商 "{editingProduct?.title}" 吗？此操作不可撤销。</p>
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={() => setIsDeleteConfirmOpen(false)}
@@ -1417,6 +1554,18 @@ function ProductManagement() {
         )}
 
         <BatchUploadModal />
+
+        {/* 添加预览模态框 */}
+        {previewModalOpen && (
+          <PreviewModal
+            image={previewImage}
+            productId={currentProduct?.spuId || ''} // 添加 productId
+            onClose={() => {
+              setPreviewModalOpen(false);
+              setPreviewImage('');
+            }}
+          />
+        )}
       </div>
     </div>
   );
