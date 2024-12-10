@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -850,6 +849,63 @@ function ProductManagement() {
     );
   };
 
+  // 添加清除每月新品分类的函数
+  // const handleClearMonthlyNewCategory = async () => {
+  //   try {
+  //     // 找出所有含有'0'分类的商品
+  //     const monthlyNewProducts = products.filter(product => 
+  //       product.categoryIds?.includes('0')
+  //     );
+
+  //     if (monthlyNewProducts.length === 0) {
+  //       alert('没有找到每月新品分类的商品');
+  //       return;
+  //     }
+
+  //     const confirmed = window.confirm(`找到${monthlyNewProducts.length}个每月新品，确定要清除它们的每月新品分类吗？`);
+  //     if (!confirmed) return;
+
+  //     let successCount = 0;
+  //     let failCount = 0;
+
+  //     for (const product of monthlyNewProducts) {
+  //       try {
+  //         const updatedProduct = {
+  //           ...product,
+  //           categoryIds: product.categoryIds?.filter(id => id !== '0')
+  //         };
+
+  //         const response = await fetch('/api/products/update', {
+  //           method: 'POST',
+  //           headers: {
+  //             'Content-Type': 'application/json',
+  //             'Cache-Control': 'no-cache'
+  //           },
+  //           body: JSON.stringify(updatedProduct),
+  //         });
+
+  //         const result = await response.json();
+  //         if (result.success) {
+  //           successCount++;
+  //         } else {
+  //           failCount++;
+  //         }
+  //       } catch (error) {
+  //         console.error(`更新商品 ${product.title} 失败:`, error);
+  //         failCount++;
+  //       }
+  //     }
+
+  //     alert(`操作完成！\n成功：${successCount}个\n失败：${failCount}个`);
+  //     if (successCount > 0) {
+  //       window.location.reload(); // 刷新页面以更新数据
+  //     }
+  //   } catch (error) {
+  //     console.error('清除每月新品分类失败:', error);
+  //     alert('清除每月新品分类失败: ' + (error instanceof Error ? error.message : '未知错误'));
+  //   }
+  // };
+
   if (!isAuthorized) {
     return null; // 未授权时不渲染任何内容，等待重定向
   }
@@ -945,6 +1001,12 @@ function ProductManagement() {
                 onClick={(e) => (e.currentTarget.value = '')}
               />
             </label>
+            {/* <button
+              onClick={handleClearMonthlyNewCategory}
+              className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              清除每月新品
+            </button> */}
           </div>
           
           <input
@@ -1573,4 +1635,4 @@ function ProductManagement() {
 
 export default function Page() {
   return <ProductManagement />;
-} 
+}
