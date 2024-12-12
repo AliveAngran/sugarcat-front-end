@@ -6,8 +6,8 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useRouter } from "next/navigation";
 import { checkAuth } from "@/utils/auth";
-import * as XLSX from 'xlsx';
-import spudb from '@/utils/final.json';
+import * as XLSX from "xlsx";
+import spudb from "@/utils/final.json";
 
 const formatMoney = (amount: number) => {
   return (amount / 100).toFixed(2);
@@ -106,7 +106,7 @@ type OrderType = {
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
 const MARGIN_MM = 10;
-const MAX_HEIGHT_MM = A4_HEIGHT_MM - (2 * MARGIN_MM);
+const MAX_HEIGHT_MM = A4_HEIGHT_MM - 2 * MARGIN_MM;
 
 function OrderList() {
   const router = useRouter();
@@ -122,7 +122,7 @@ function OrderList() {
   useEffect(() => {
     const auth = checkAuth();
     if (!auth) {
-      router.push('/');
+      router.push("/");
     } else {
       setIsAuthorized(true);
     }
@@ -144,20 +144,20 @@ function OrderList() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/orders', {
-        cache: 'no-store'
+      const response = await fetch("/api/orders", {
+        cache: "no-store",
       });
-      
+
       if (!response.ok) {
-        throw new Error('获取订单失败');
+        throw new Error("获取订单失败");
       }
-      
+
       const result = await response.json();
-      
+
       if (!result.success) {
-        throw new Error(result.error || '获取订单失败');
+        throw new Error(result.error || "获取订单失败");
       }
-      
+
       setOrders(result.data);
       setError(null);
     } catch (err) {
@@ -206,39 +206,41 @@ function OrderList() {
     });
   };
 
-  const updateOrderExportStatus = async (orderId: string, isExported: boolean) => {
+  const updateOrderExportStatus = async (
+    orderId: string,
+    isExported: boolean
+  ) => {
     try {
-      const response = await fetch('/api/orders', {
-        method: 'PATCH',
+      const response = await fetch("/api/orders", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           orderId,
-          isExported
-        })
+          isExported,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('更新订单导出状态失败');
+        throw new Error("更新订单导出状态失败");
       }
 
       const result = await response.json();
-      
+
       if (!result.success) {
-        throw new Error(result.error || '更新订单导出状态失败');
+        throw new Error(result.error || "更新订单导出状态失败");
       }
 
       // 更新本地状态
-      setOrders(orders.map(order => 
-        order._id === orderId 
-          ? { ...order, isExported }
-          : order
-      ));
-
+      setOrders(
+        orders.map((order) =>
+          order._id === orderId ? { ...order, isExported } : order
+        )
+      );
     } catch (error) {
-      console.error('更新订单导出状态失败:', error);
-      alert(error instanceof Error ? error.message : '更新订单导出状态失败');
+      console.error("更新订单导出状态失败:", error);
+      alert(error instanceof Error ? error.message : "更新订单导出状态失败");
     }
   };
 
@@ -298,9 +300,9 @@ function OrderList() {
       }
 
       // 临时隐藏所有带有 no-print 类的元素
-      const noPrintElements = element.querySelectorAll('.no-print');
-      noPrintElements.forEach(el => {
-        (el as HTMLElement).style.display = 'none';
+      const noPrintElements = element.querySelectorAll(".no-print");
+      noPrintElements.forEach((el) => {
+        (el as HTMLElement).style.display = "none";
       });
 
       const orderElements = element.querySelectorAll(".order-item");
@@ -315,20 +317,20 @@ function OrderList() {
       const A4_WIDTH_MM = 210;
       const A4_HEIGHT_MM = 297;
       const MARGIN_MM = 10;
-      const MAX_HEIGHT_MM = A4_HEIGHT_MM - (2 * MARGIN_MM);
+      const MAX_HEIGHT_MM = A4_HEIGHT_MM - 2 * MARGIN_MM;
       let currentPageHeight = 0;
 
       for (let i = 0; i < orderElements.length; i++) {
         const orderElement = orderElements[i] as HTMLElement;
         const orderId = orderElement.getAttribute("data-order-id");
-        const order = orders.find(o => o._id === orderId);
+        const order = orders.find((o) => o._id === orderId);
 
         if (selectedOnly && (!orderId || !selectedOrders.has(orderId))) {
           continue;
         }
 
         // 跳过未付款的订单
-        if (order && order.payStatus === 'UNPAID') {
+        if (order && order.payStatus === "UNPAID") {
           continue;
         }
 
@@ -347,16 +349,16 @@ function OrderList() {
         });
 
         // 获表格行的置信息
-        const tableRows = orderElement.querySelectorAll('tbody tr');
-        const rowPositions = Array.from(tableRows).map(row => {
+        const tableRows = orderElement.querySelectorAll("tbody tr");
+        const rowPositions = Array.from(tableRows).map((row) => {
           const rect = (row as HTMLElement).getBoundingClientRect();
           return {
             top: rect.top - orderElement.getBoundingClientRect().top,
-            height: rect.height
+            height: rect.height,
           };
         });
 
-        const imgWidth = A4_WIDTH_MM - (2 * MARGIN_MM);
+        const imgWidth = A4_WIDTH_MM - 2 * MARGIN_MM;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         const scale = imgWidth / canvas.width;
 
@@ -376,16 +378,17 @@ function OrderList() {
             const rowBottom = rowPositions[j].top + rowPositions[j].height;
             if (rowBottom > maxFirstPagePixels) {
               // 使用上一行的底部作为分割点
-              splitPosition = j > 0 ? 
-                rowPositions[j - 1].top + rowPositions[j - 1].height :
-                rowPositions[j].top;
+              splitPosition =
+                j > 0
+                  ? rowPositions[j - 1].top + rowPositions[j - 1].height
+                  : rowPositions[j].top;
               break;
             }
           }
 
           // 创建第一页画布
-          const firstPageCanvas = document.createElement('canvas');
-          const firstPageCtx = firstPageCanvas.getContext('2d');
+          const firstPageCanvas = document.createElement("canvas");
+          const firstPageCtx = firstPageCanvas.getContext("2d");
           if (!firstPageCtx) continue;
 
           firstPageCanvas.width = canvas.width;
@@ -420,8 +423,8 @@ function OrderList() {
           // 处理剩余内容
           pdf.addPage();
           const remainingHeight = canvas.height - splitPosition;
-          const remainingCanvas = document.createElement('canvas');
-          const remainingCtx = remainingCanvas.getContext('2d');
+          const remainingCanvas = document.createElement("canvas");
+          const remainingCtx = remainingCanvas.getContext("2d");
           if (!remainingCtx) continue;
 
           remainingCanvas.width = canvas.width;
@@ -443,18 +446,18 @@ function OrderList() {
           const remainingImgHeight = remainingHeight * scale;
 
           // 处理表头
-          const tableHeader = orderElement.querySelector('thead');
+          const tableHeader = orderElement.querySelector("thead");
           if (tableHeader) {
-            const headerCanvas = document.createElement('canvas');
-            const headerCtx = headerCanvas.getContext('2d');
+            const headerCanvas = document.createElement("canvas");
+            const headerCtx = headerCanvas.getContext("2d");
             if (headerCtx) {
               const headerHeight = (tableHeader as HTMLElement).offsetHeight;
               headerCanvas.width = canvas.width;
               headerCanvas.height = headerHeight;
-              
+
               // 可以选择稍微放大表头
               const headerScale = 1.1; // 表头放大比例
-              
+
               headerCtx.scale(headerScale, headerScale);
               headerCtx.drawImage(
                 canvas,
@@ -517,24 +520,24 @@ function OrderList() {
       }
 
       // 恢复所有 no-print 元素的显示
-      noPrintElements.forEach(el => {
-        (el as HTMLElement).style.display = '';
+      noPrintElements.forEach((el) => {
+        (el as HTMLElement).style.display = "";
       });
 
       // 在成功导出后更新所有导出订单的状态
-      const exportedOrderIds = selectedOnly 
+      const exportedOrderIds = selectedOnly
         ? Array.from(selectedOrders)
-        : orders.map(order => order._id);
+        : orders.map((order) => order._id);
 
       // 批量更新导出状态
       await Promise.all(
-        exportedOrderIds.map(orderId => 
+        exportedOrderIds.map((orderId) =>
           updateOrderExportStatus(orderId, true)
         )
       );
 
       pdf.save(`销售明细_${new Date().toLocaleDateString()}.pdf`);
-      
+
       // 重新获取最新数据
       await fetchOrders();
     } catch (error) {
@@ -551,47 +554,47 @@ function OrderList() {
 
   const updateOrderStatus = async (orderId: string, newStatus: number) => {
     try {
-      const response = await fetch('/api/orders', {
-        method: 'PATCH',
+      const response = await fetch("/api/orders", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           orderId,
-          newStatus
-        })
+          newStatus,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('更新订单状态失败');
+        throw new Error("更新订单状态失败");
       }
 
       const result = await response.json();
-      
+
       if (!result.success) {
-        throw new Error(result.error || '更新订单状态失败');
+        throw new Error(result.error || "更新订单状态失败");
       }
 
       // 更新本地状态
-      setOrders(orders.map(order => 
-        order._id === orderId 
-          ? { ...order, orderStatus: newStatus }
-          : order
-      ));
+      setOrders(
+        orders.map((order) =>
+          order._id === orderId ? { ...order, orderStatus: newStatus } : order
+        )
+      );
 
-      alert('订单状态更新成功');
+      alert("订单状态更新成功");
     } catch (error) {
-      console.error('更新订单状态失败:', error);
-      alert(error instanceof Error ? error.message : '更新订单状态失败');
+      console.error("更新订单状态失败:", error);
+      alert(error instanceof Error ? error.message : "更新订单状态失败");
     }
   };
 
   const renderStatusButton = (order: OrderType) => {
     const statusOptions = [
-      { value: 10, label: '发货' },
-      { value: 40, label: '运送中' },
-      { value: 50, label: '已完成' },
-      { value: 80, label: '已取消' }
+      { value: 10, label: "发货" },
+      { value: 40, label: "运送中" },
+      { value: 50, label: "已完成" },
+      { value: 80, label: "已取消" },
     ];
 
     return (
@@ -599,14 +602,22 @@ function OrderList() {
         value={order.orderStatus}
         onChange={(e) => {
           const newStatus = parseInt(e.target.value, 10);
-          if (confirm(`确认将订单状态更改为"${statusOptions.find(opt => opt.value === newStatus)?.label}"？`)) {
+          if (
+            confirm(
+              `确认将订单状态更改为"${
+                statusOptions.find((opt) => opt.value === newStatus)?.label
+              }"？`
+            )
+          ) {
             updateOrderStatus(order._id, newStatus);
           }
         }}
         onClick={(e) => e.stopPropagation()}
-        className={`px-3 py-1 rounded-full text-sm cursor-pointer no-print ${getOrderStatusStyle(order.orderStatus)}`}
+        className={`px-3 py-1 rounded-full text-sm cursor-pointer no-print ${getOrderStatusStyle(
+          order.orderStatus
+        )}`}
       >
-        {statusOptions.map(option => (
+        {statusOptions.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
@@ -618,64 +629,86 @@ function OrderList() {
   const exportToExcel = async (selectedOnly: boolean) => {
     try {
       setExporting(true);
-      
+
       // Create a mapping of spuId to title from spudb
       const spuTitleMap = new Map(
-        spudb.map(item => [item.spuId, item.title])
+        spudb.map((item) => [item.spuId, item.title])
       );
-      
+
       // 获取要导出的订单
-      const ordersToExport = selectedOnly 
-        ? orders.filter(order => selectedOrders.has(order._id))
+      const ordersToExport = selectedOnly
+        ? orders.filter((order) => selectedOrders.has(order._id))
         : orders;
-        
+
+      // // 转换数据为Excel格式
+      // const excelData = ordersToExport.flatMap(order =>
+      //   order.goodsList.map(goods => ({
+      //     '单号': order.orderNo,
+      //     '仓库': '1-浙江唐茂科技有限公司',
+      //     '客户编码': order._openid,
+      //     '客户': order.userStoreName || '未知店家',
+      //     '业务员': order.salesPerson || '',
+      //     '配送业务员': order.salesPerson || '',
+      //     '销售/退货': '销售',
+      //     '日期': formatDate(String(order.createTime)),
+      //     '备注': '',
+      //     '操作人': '',
+      //     '产品名称': spuTitleMap.get(goods.spuId) || goods.goodsName,
+      //     '商品编码': goods.spuId,
+      //     '生产日期': '',
+      //     '数量': goods.quantity,
+      //     '单价': goods.price / 100,
+      //     '金额': (goods.price * goods.quantity) / 100,
+      //     '明细备注': ''
+      //   }))
+      // );
+
       // 转换数据为Excel格式
-      const excelData = ordersToExport.flatMap(order => 
-        order.goodsList.map(goods => ({
-          '单号': order.orderNo,
-          '仓库': '1-浙江唐茂科技有限公司',
-          '客户编码': order._openid,
-          '客户': order.userStoreName || '未知店家',
-          '业务员': order.salesPerson || '',
-          '配送业务员': order.salesPerson || '',
-          '销售/退货': '销售',
-          '日期': formatDate(String(order.createTime)),
-          '备注': '',
-          '操作人': '',
-          '产品名称': spuTitleMap.get(goods.spuId) || goods.goodsName,
-          '商品编码': goods.spuId,
-          '生产日期': '',
-          '数量': goods.quantity,
-          '单价': goods.price / 100,
-          '金额': (goods.price * goods.quantity) / 100,
-          '明细备注': ''
+      const excelData = ordersToExport.flatMap((order) =>
+        order.goodsList.map((goods) => ({
+          单号: order.orderNo,
+          仓库: "1-浙江唐茂科技有限公司",
+          客户编码: order._openid,
+          客户: order.userStoreName || "未知店家",
+          业务员: order.salesPerson || "",
+          配送业务员: order.salesPerson || "",
+          "销售/退货": "销售",
+          日期: new Date(order.createTime), // 使用 Date 对象
+          备注: "",
+          操作人: "",
+          产品名称: spuTitleMap.get(goods.spuId) || goods.goodsName,
+          商品编码: goods.spuId,
+          生产日期: "",
+          数量: goods.quantity,
+          单价: goods.price / 100,
+          金额: (goods.price * goods.quantity) / 100,
+          明细备注: "",
         }))
       );
 
       // 创建工作簿
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
-      
+
       // 添加工作表到工作簿
-      XLSX.utils.book_append_sheet(wb, ws, '销售明细');
-      
+      XLSX.utils.book_append_sheet(wb, ws, "销售明细");
+
       // 导出文件
       XLSX.writeFile(wb, `销售明细_${new Date().toLocaleDateString()}.xlsx`);
 
       // 更新导出状态
-      const exportedOrderIds = selectedOnly 
+      const exportedOrderIds = selectedOnly
         ? Array.from(selectedOrders)
-        : orders.map(order => order._id);
+        : orders.map((order) => order._id);
 
       await Promise.all(
-        exportedOrderIds.map(orderId => 
+        exportedOrderIds.map((orderId) =>
           updateOrderExportStatus(orderId, true)
         )
       );
 
       // 重新获取数据
       await fetchOrders();
-      
     } catch (error) {
       console.error("Excel导出失败:", error);
       alert("Excel导出失败，请重试");
@@ -735,8 +768,8 @@ function OrderList() {
                   onClick={() => {
                     // 选择所有未导出的订单
                     const unexportedOrders = orders
-                      .filter(order => !order.isExported)
-                      .map(order => order._id);
+                      .filter((order) => !order.isExported)
+                      .map((order) => order._id);
                     setSelectedOrders(new Set(unexportedOrders));
                   }}
                   className="bg-yellow-600 text-white rounded-lg px-6 py-2 hover:bg-yellow-700 transition duration-200"
@@ -755,7 +788,9 @@ function OrderList() {
                   disabled={exporting || selectedOrders.size === 0}
                   className="bg-blue-600 text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition duration-200 disabled:bg-gray-400"
                 >
-                  {exporting ? "导出中..." : `导出Excel(${selectedOrders.size})`}
+                  {exporting
+                    ? "导出中..."
+                    : `导出Excel(${selectedOrders.size})`}
                 </button>
               </>
             )}
@@ -790,11 +825,24 @@ function OrderList() {
                 rounded-lg shadow-md p-4 border border-gray-300 
                 print:break-inside-avoid-page 
                 print:mb-8
-                ${order.orderStatus === 80 ? "bg-gray-100 text-gray-500" : 
-                  order.payStatus === 'UNPAID' ? "bg-rose-50/70" : "bg-white"}
-                ${order.orderStatus === 80 || order.payStatus === 'UNPAID' ? "text-gray-500" : "text-gray-900"}
+                ${
+                  order.orderStatus === 80
+                    ? "bg-gray-100 text-gray-500"
+                    : order.payStatus === "UNPAID"
+                    ? "bg-rose-50/70"
+                    : "bg-white"
+                }
+                ${
+                  order.orderStatus === 80 || order.payStatus === "UNPAID"
+                    ? "text-gray-500"
+                    : "text-gray-900"
+                }
                 ${selectMode ? "cursor-pointer" : ""}
-                ${selectMode && selectedOrders.has(order._id) ? "ring-2 ring-blue-500" : ""}
+                ${
+                  selectMode && selectedOrders.has(order._id)
+                    ? "ring-2 ring-blue-500"
+                    : ""
+                }
               `}
               onClick={() => selectMode && toggleSelectOrder(order._id)}
             >
@@ -804,7 +852,11 @@ function OrderList() {
                     type="checkbox"
                     checked={selectedOrders.has(order._id)}
                     onChange={() => toggleSelectOrder(order._id)}
-                    className={`w-5 h-5 ${order.orderStatus === 80 ? "cursor-not-allowed" : "text-blue-600"}`}
+                    className={`w-5 h-5 ${
+                      order.orderStatus === 80
+                        ? "cursor-not-allowed"
+                        : "text-blue-600"
+                    }`}
                     onClick={(e) => e.stopPropagation()}
                     disabled={order.orderStatus === 80}
                   />
@@ -815,7 +867,7 @@ function OrderList() {
                   {orders.length - index}. 订单号: {order.orderNo}
                 </span>
                 <div className="flex items-center space-x-4 no-print">
-                  {order.payStatus === 'UNPAID' && (
+                  {order.payStatus === "UNPAID" && (
                     <span className="px-2 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-medium border border-rose-200">
                       未付款
                     </span>
@@ -826,13 +878,19 @@ function OrderList() {
                       updateOrderExportStatus(order._id, !order.isExported);
                     }}
                     className={`px-2 py-1 rounded-full text-xs cursor-pointer hover:opacity-80 ${
-                      order.isExported 
-                        ? 'bg-purple-100 text-purple-800 border border-purple-300' 
-                        : 'bg-orange-100 text-orange-800 border border-orange-300'
-                    } ${(order.orderStatus === 80 || order.payStatus === 'UNPAID') ? "opacity-50 cursor-not-allowed" : ""}`}
-                    disabled={order.orderStatus === 80 || order.payStatus === 'UNPAID'}
+                      order.isExported
+                        ? "bg-purple-100 text-purple-800 border border-purple-300"
+                        : "bg-orange-100 text-orange-800 border border-orange-300"
+                    } ${
+                      order.orderStatus === 80 || order.payStatus === "UNPAID"
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                    disabled={
+                      order.orderStatus === 80 || order.payStatus === "UNPAID"
+                    }
                   >
-                    {order.isExported ? '已导出' : '未导出'}
+                    {order.isExported ? "已导出" : "未导出"}
                   </button>
                   {renderStatusButton(order)}
                 </div>
@@ -844,8 +902,8 @@ function OrderList() {
                     {order.userStoreName || "未知店家"}
                     {order.userPhoneNumber && (
                       <span className="ml-2">
-                        {order.userPhoneNumber === order.receiverPhone 
-                          ? "" 
+                        {order.userPhoneNumber === order.receiverPhone
+                          ? ""
                           : ` ${order.userPhoneNumber}`}
                       </span>
                     )}
@@ -866,13 +924,15 @@ function OrderList() {
                   <span>{order.salesPerson || "未知"}</span>
                 </div>
               </div>
-              <div className={`text-lg font-medium ${
-                order.payStatus === 'UNPAID' 
-                  ? 'text-rose-600' 
-                  : order.orderStatus === 80 
-                    ? 'text-gray-500'
-                    : 'text-rose-600'  // 统一使用玫瑰色
-              }`}>
+              <div
+                className={`text-lg font-medium ${
+                  order.payStatus === "UNPAID"
+                    ? "text-rose-600"
+                    : order.orderStatus === 80
+                    ? "text-gray-500"
+                    : "text-rose-600" // 统一使用玫瑰色
+                }`}
+              >
                 ¥{formatMoney(order.paymentAmount)}
               </div>
               <div className="text-sm">
@@ -897,27 +957,47 @@ function OrderList() {
                 <table className="mt-4 w-full rounded-lg text-sm">
                   <thead>
                     <tr className="border-b border-gray-300">
-                      <th className="py-1.5 px-2 text-left font-medium">序号</th>
-                      <th className="py-1.5 px-2 text-left font-medium">商品名称</th>
-                      <th className="py-1.5 px-2 text-center font-medium">规格</th>
-                      <th className="py-1.5 px-2 text-left font-medium">条码</th>
-                      <th className="py-1.5 px-2 text-left font-medium">单价</th>
-                      <th className="py-1.5 px-2 text-left font-medium">数量</th>
-                      <th className="py-1.5 px-2 text-right font-medium">总价</th>
+                      <th className="py-1.5 px-2 text-left font-medium">
+                        序号
+                      </th>
+                      <th className="py-1.5 px-2 text-left font-medium">
+                        商品名称
+                      </th>
+                      <th className="py-1.5 px-2 text-center font-medium">
+                        规格
+                      </th>
+                      <th className="py-1.5 px-2 text-left font-medium">
+                        条码
+                      </th>
+                      <th className="py-1.5 px-2 text-left font-medium">
+                        单价
+                      </th>
+                      <th className="py-1.5 px-2 text-left font-medium">
+                        数量
+                      </th>
+                      <th className="py-1.5 px-2 text-right font-medium">
+                        总价
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="text-xs">
                     {order.goodsList.map((goods, index) => (
-                      <tr key={goods.spuId} className="border-b border-gray-300">
+                      <tr
+                        key={goods.spuId}
+                        className="border-b border-gray-300"
+                      >
                         <td className="py-1 px-2">{index + 1}</td>
                         <td className="py-1 px-2">{goods.goodsName}</td>
                         <td className="py-1 px-2">{goods.desc}</td>
                         <td className="py-1 px-2">{goods.spuId}</td>
-                        <td className={`py-1 px-2 text-right ${
-                          order.payStatus === 'UNPAID' || order.orderStatus === 80
-                            ? 'text-gray-500'
-                            : 'text-rose-600'
-                        }`}>
+                        <td
+                          className={`py-1 px-2 text-right ${
+                            order.payStatus === "UNPAID" ||
+                            order.orderStatus === 80
+                              ? "text-gray-500"
+                              : "text-rose-600"
+                          }`}
+                        >
                           ¥{formatMoney(goods.price)}
                         </td>
                         <td className="py-1 px-2 text-center">
@@ -925,14 +1005,19 @@ function OrderList() {
                           {goods.unitType &&
                           goods.unitsPerUnit &&
                           goods.quantity / goods.unitsPerUnit >= 1
-                            ? `（${goods.quantity / goods.unitsPerUnit}${goods.unitType}）`
+                            ? `（${goods.quantity / goods.unitsPerUnit}${
+                                goods.unitType
+                              }）`
                             : ""}
                         </td>
-                        <td className={`py-1 px-2 text-right ${
-                          order.payStatus === 'UNPAID' || order.orderStatus === 80
-                            ? 'text-gray-500'
-                            : 'text-rose-600'
-                        }`}>
+                        <td
+                          className={`py-1 px-2 text-right ${
+                            order.payStatus === "UNPAID" ||
+                            order.orderStatus === 80
+                              ? "text-gray-500"
+                              : "text-rose-600"
+                          }`}
+                        >
                           ¥{formatMoney(goods.price * goods.quantity)}
                         </td>
                       </tr>
