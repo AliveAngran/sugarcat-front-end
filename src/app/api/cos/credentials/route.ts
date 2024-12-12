@@ -18,7 +18,8 @@ const cosConfig = {
   secretId: process.env.SECRET_ID,
   secretKey: process.env.SECRET_KEY,
   proxy: '',
-  durationSeconds: 1800,
+  durationSeconds: 7200,
+  refreshTimeInSeconds: 300, // 提前5分钟刷新
   bucket: process.env.COS_BUCKET || 'tangmao-1327435676',
   region: process.env.COS_REGION || 'ap-guangzhou',
   allowPrefix: '*',
@@ -73,7 +74,7 @@ export async function GET() {
 
     // 检查凭证是否已过期
     const now = Math.floor(Date.now() / 1000);
-    if (now >= result.expiredTime) {
+    if (now >= result.expiredTime - cosConfig.refreshTimeInSeconds) {
       return NextResponse.json({ 
         success: false, 
         error: 'Credentials expired'

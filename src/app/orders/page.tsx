@@ -7,6 +7,7 @@ import jsPDF from "jspdf";
 import { useRouter } from "next/navigation";
 import { checkAuth } from "@/utils/auth";
 import * as XLSX from 'xlsx';
+import spudb from '@/utils/final.json';
 
 const formatMoney = (amount: number) => {
   return (amount / 100).toFixed(2);
@@ -618,6 +619,11 @@ function OrderList() {
     try {
       setExporting(true);
       
+      // Create a mapping of spuId to title from spudb
+      const spuTitleMap = new Map(
+        spudb.map(item => [item.spuId, item.title])
+      );
+      
       // 获取要导出的订单
       const ordersToExport = selectedOnly 
         ? orders.filter(order => selectedOrders.has(order._id))
@@ -631,12 +637,12 @@ function OrderList() {
           '客户编码': order._openid,
           '客户': order.userStoreName || '未知店家',
           '业务员': order.salesPerson || '',
-          '配送业务员': '',
+          '配送业务员': order.salesPerson || '',
           '销售/退货': '销售',
           '日期': formatDate(String(order.createTime)),
           '备注': '',
           '操作人': '',
-          '产品名称': goods.goodsName,
+          '产品名称': spuTitleMap.get(goods.spuId) || goods.goodsName,
           '商品编码': goods.spuId,
           '生产日期': '',
           '数量': goods.quantity,
