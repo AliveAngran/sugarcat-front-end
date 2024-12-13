@@ -108,6 +108,13 @@ const A4_HEIGHT_MM = 297;
 const MARGIN_MM = 10;
 const MAX_HEIGHT_MM = A4_HEIGHT_MM - 2 * MARGIN_MM;
 
+function dateToExcelSerial(date) {
+  const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // Excel的起始日期
+  const jsDate = new Date(date);
+  const localDate = new Date(jsDate.toLocaleString("en-US", { timeZone: "Asia/Shanghai" }));
+  return (localDate - excelEpoch) / (24 * 60 * 60 * 1000);
+}
+
 function OrderList() {
   const router = useRouter();
   const [orders, setOrders] = useState<OrderType[]>([]);
@@ -640,29 +647,6 @@ function OrderList() {
         ? orders.filter((order) => selectedOrders.has(order._id))
         : orders;
 
-      // // 转换数据为Excel格式
-      // const excelData = ordersToExport.flatMap(order =>
-      //   order.goodsList.map(goods => ({
-      //     '单号': order.orderNo,
-      //     '仓库': '1-浙江唐茂科技有限公司',
-      //     '客户编码': order._openid,
-      //     '客户': order.userStoreName || '未知店家',
-      //     '业务员': order.salesPerson || '',
-      //     '配送业务员': order.salesPerson || '',
-      //     '销售/退货': '销售',
-      //     '日期': formatDate(String(order.createTime)),
-      //     '备注': '',
-      //     '操作人': '',
-      //     '产品名称': spuTitleMap.get(goods.spuId) || goods.goodsName,
-      //     '商品编码': goods.spuId,
-      //     '生产日期': '',
-      //     '数量': goods.quantity,
-      //     '单价': goods.price / 100,
-      //     '金额': (goods.price * goods.quantity) / 100,
-      //     '明细备注': ''
-      //   }))
-      // );
-
       // 转换数据为Excel格式
       const excelData = ordersToExport.flatMap((order) =>
         order.goodsList.map((goods) => ({
@@ -673,7 +657,7 @@ function OrderList() {
           业务员: order.salesPerson || "",
           配送业务员: order.salesPerson || "",
           "销售/退货": "销售",
-          日期: new Date(order.createTime), // 使用 Date 对象
+          日期: dateToExcelSerial(order.createTime), // 使用Excel日期序列值
           备注: "",
           操作人: "",
           产品名称: spuTitleMap.get(goods.spuId) || goods.goodsName,
