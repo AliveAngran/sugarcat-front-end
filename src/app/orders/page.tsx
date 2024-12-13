@@ -108,11 +108,11 @@ const A4_HEIGHT_MM = 297;
 const MARGIN_MM = 10;
 const MAX_HEIGHT_MM = A4_HEIGHT_MM - 2 * MARGIN_MM;
 
-function dateToExcelSerial(date) {
+function dateToExcelSerial(date: string | number | Date) {
   const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // Excel的起始日期
-  const jsDate = new Date(date);
+  const jsDate = new Date(typeof date === 'number' ? date.toString() : date);
   const localDate = new Date(jsDate.toLocaleString("en-US", { timeZone: "Asia/Shanghai" }));
-  return (localDate - excelEpoch) / (24 * 60 * 60 * 1000);
+  return (localDate.getTime() - excelEpoch.getTime()) / (24 * 60 * 60 * 1000);
 }
 
 function OrderList() {
