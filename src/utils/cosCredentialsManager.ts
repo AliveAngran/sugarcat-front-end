@@ -77,7 +77,13 @@ class COSCredentialsManager {
     try {
       console.log(`[COS] Refreshing credentials. Attempt ${this.refreshAttempts + 1}`);
       
-      const response = await fetch('/api/cos/credentials');
+      const response = await fetch('/api/cos/credentials', {
+        cache: 'no-store',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache'
+        }
+      });
       const data: CredentialsResponse = await response.json();
 
       if (!data.success || !data.credentials) {

@@ -103,6 +103,13 @@ export async function GET() {
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
   }
 } 
