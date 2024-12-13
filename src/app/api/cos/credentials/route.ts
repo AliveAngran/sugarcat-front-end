@@ -18,7 +18,7 @@ const cosConfig = {
   secretId: process.env.SECRET_ID,
   secretKey: process.env.SECRET_KEY,
   proxy: '',
-  durationSeconds: 10,
+  durationSeconds: 7200,
   refreshTimeInSeconds: 300, // 提前5分钟刷新
   bucket: process.env.COS_BUCKET || 'tangmao-1327435676',
   region: process.env.COS_REGION || 'ap-guangzhou',
