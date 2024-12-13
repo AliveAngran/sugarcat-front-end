@@ -14,7 +14,7 @@ const cos = new COS({
 
         const credentials = data.credentials;
         const startTime = Math.floor(Date.now() / 1000);
-        
+        console.log('获取到的临时密钥:', credentials);
         return {
           TmpSecretId: credentials.credentials.tmpSecretId,
           TmpSecretKey: credentials.credentials.tmpSecretKey,

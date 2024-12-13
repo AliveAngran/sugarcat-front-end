@@ -18,7 +18,7 @@ const cosConfig = {
   secretId: process.env.SECRET_ID,
   secretKey: process.env.SECRET_KEY,
   proxy: '',
-  durationSeconds: 7200,
+  durationSeconds: 10,
   refreshTimeInSeconds: 300, // 提前5分钟刷新
   bucket: process.env.COS_BUCKET || 'tangmao-1327435676',
   region: process.env.COS_REGION || 'ap-guangzhou',
@@ -87,7 +87,7 @@ export async function GET() {
         }
       });
     }
-
+    console.log("cos result", result);
     return NextResponse.json({ 
       success: true, 
       credentials: result
