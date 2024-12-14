@@ -406,6 +406,7 @@ def make_custom_request():
         # 打印响应信息
         print(f"\n=== 响应信息 ===")
         print(f"状态码: {response.status_code}")
+        
         print(f"Content-Type: {response.headers.get('content-type', 'unknown')}")
         print(f"响应长度: {len(response.text)} 字符")
 
