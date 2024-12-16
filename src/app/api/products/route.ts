@@ -9,7 +9,7 @@ export async function GET() {
     const db = cloudbase.database();
     const result = await db.collection('spu_db')
       .orderBy('createTime', 'asc')
-      .limit(1000)
+      .limit(2000)
       .get();
 
     return NextResponse.json({ 
