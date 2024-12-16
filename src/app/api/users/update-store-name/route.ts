@@ -29,15 +29,15 @@ export async function PUT(request: Request) {
 
     console.log("User update result:", userId);
 
-    // 更新当前订单中的连凯名称
-    const orderUpdate = await db
-      .collection("orders")
-      .doc(orderId)
-      .update({
-        userStoreNameLiankai: storeName
-      });
+    // // 更新当前订单中的连凯名称
+    // const orderUpdate = await db
+    //   .collection("orders")
+    //   .doc(orderId)
+    //   .update({
+    //     userStoreNameLiankai: storeName
+    //   });
 
-    console.log("Order update result:", orderUpdate);
+    // console.log("Order update result:", orderUpdate);
 
     return NextResponse.json({ success: true });
   } catch (error) {
