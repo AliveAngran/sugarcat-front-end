@@ -694,7 +694,7 @@ function OrderList() {
           配送业务员: order.salesPerson || "",
           "销售/退货": "销售",
           日期: dateToExcelSerial(order.createTime), // 使用Excel日期序列值
-          备注: "",
+          备注: "小程序",
           操作人: "",
           产品名称: spuTitleMap.get(goods.spuId) || goods.goodsName,
           商品编码: goods.spuId,
