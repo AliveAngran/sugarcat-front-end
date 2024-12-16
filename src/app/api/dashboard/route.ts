@@ -125,7 +125,7 @@ export async function GET() {
       .where({
         orderStatus: _.in([10, 40, 50, 80, 90]),
       })
-      .limit(1000)
+      .limit(2000)
       .get();
     
     // 获取所有商品
@@ -134,7 +134,7 @@ export async function GET() {
         isPutOnSale: 1,
         available: _.gt(0)
       })
-      .limit(1000)
+      .limit(2000)
       .get();
     
     const orders = ordersResult.data || [];
@@ -434,7 +434,7 @@ export async function GET() {
       .where({
         _openid: _.in(openids)
       })
-      .limit(1000)
+      .limit(2000)
       .get();
 
     // 修改用户信息映射的数据结构
