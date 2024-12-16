@@ -20,7 +20,7 @@ export async function GET() {
     // 获取订单数据
     const ordersResult = await db.collection('orders')
       .orderBy('createTime', 'desc')
-      .limit(1000)
+      .limit(2000)
       .get();
     
 
@@ -32,7 +32,7 @@ export async function GET() {
       .where({
         _openid: _.in(openids)
       })
-      .limit(1000)
+      .limit(2000)
       .get();
 
     // 创建用户信息映射
