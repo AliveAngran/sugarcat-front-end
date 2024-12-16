@@ -95,6 +95,7 @@ type OrderType = {
   receiverAddress: string;
   createTime: string | number;
   userStoreName?: string;
+  userStoreNameLiankai?: string;
   userPhoneNumber?: string;
   goodsList: GoodsWithDesc[];
   _openid: string;
@@ -125,6 +126,8 @@ function OrderList() {
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [editingLiankaiId, setEditingLiankaiId] = useState<string | null>(null);
+  const [newLiankaiName, setNewLiankaiName] = useState("");
 
   useEffect(() => {
     const auth = checkAuth();
@@ -596,6 +599,39 @@ function OrderList() {
     }
   };
 
+  const handleUpdateLiankaiName = async (userId: string, orderId: string) => {
+    try {
+      console.log("Updating liankai name for user:", userId, "order:", orderId);
+      const response = await fetch("/api/users/update-store-name", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          orderId,
+          storeName: newLiankaiName,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update liankai name");
+      }
+
+      const result = await response.json();
+      console.log("Update result:", result);
+
+      // 刷新订单列表
+      fetchOrders();
+      setEditingLiankaiId(null);
+      setNewLiankaiName("");
+    } catch (error) {
+      console.error("Error updating liankai name:", error);
+      alert("更新连凯名称失败");
+    }
+  };
+
   const renderStatusButton = (order: OrderType) => {
     const statusOptions = [
       { value: 10, label: "发货" },
@@ -653,7 +689,7 @@ function OrderList() {
           单号: order.orderNo,
           仓库: "1-浙江唐茂科技有限公司",
           客户编码: order._openid,
-          客户: order.userStoreName || "未知店家",
+          客户: order.userStoreNameLiankai || order.userStoreName || "未知店家",
           业务员: order.salesPerson || "",
           配送业务员: order.salesPerson || "",
           "销售/退货": "销售",
@@ -880,10 +916,68 @@ function OrderList() {
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
-                <div className="flex">
+                <div className="flex items-center">
                   <span className="font-semibold w-20">店家名：</span>
-                  <span>
-                    {order.userStoreName || "未知店家"}
+                  <span className="flex items-center">
+                    {editingLiankaiId === order._openid ? (
+                      <div className="flex items-center">
+                        <input
+                          type="text"
+                          value={newLiankaiName}
+                          onChange={(e) => setNewLiankaiName(e.target.value)}
+                          className="border border-gray-300 rounded px-2 py-1 mr-2"
+                          placeholder="输入连凯名称"
+                        />
+                        <button
+                          onClick={() => handleUpdateLiankaiName(order._openid, order._id)}
+                          className="bg-blue-500 text-white px-2 py-1 rounded mr-1 text-sm"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingLiankaiId(null);
+                            setNewLiankaiName("");
+                          }}
+                          className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex flex-col">
+                          <div>
+                            店家名：{order.userStoreName || "未知店家"}
+                          </div>
+                          <div className="text-blue-600">
+                            连凯名：{order.userStoreNameLiankai || "未设置"}
+                            <button
+                              onClick={() => {
+                                setEditingLiankaiId(order._openid);
+                                setNewLiankaiName(order.userStoreNameLiankai || "");
+                              }}
+                              className="ml-2 text-blue-500 hover:text-blue-700"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 4v16m8-8H4"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
                     {order.userPhoneNumber && (
                       <span className="ml-2">
                         {order.userPhoneNumber === order.receiverPhone

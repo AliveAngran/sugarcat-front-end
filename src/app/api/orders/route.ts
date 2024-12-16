@@ -14,19 +14,24 @@ const app = cloud.init({
 
 export async function GET() {
   try {
+    // console.log("[Orders API] Starting to fetch orders");
     const db = cloudbase.database();
     const _ = db.command;
     
+    // console.log("[Orders API] Fetching orders from database");
     // 获取订单数据
     const ordersResult = await db.collection('orders')
       .orderBy('createTime', 'desc')
       .limit(2000)
       .get();
     
+    // console.log("[Orders API] Orders count:", ordersResult.data.length);
 
     // 获取所有相关用户的 openid
     const openids = Array.from(new Set(ordersResult.data.map((order: any) => order._openid)));
+    // console.log("[Orders API] Unique openids count:", openids.length);
     
+    // console.log("[Orders API] Fetching users information");
     // 批量获取用户信息
     const usersResult = await db.collection('users')
       .where({
@@ -35,96 +40,60 @@ export async function GET() {
       .limit(2000)
       .get();
 
+    // console.log("[Orders API] Users found:", usersResult.data.length);
+
     // 创建用户信息映射
     const userMap = new Map(
       usersResult.data.map((user: any) => [
         user._openid,
         {
           userStoreName: user.userStoreName || "未知店家",
+          userStoreNameLiankai: user.userStoreNameLiankai || "",
           salesPerson: user.salesPerson || "未知",
           phoneNumber: user.phoneNumber || ""
         }
       ])
     );
 
-    // 获取所有商品的 spuId
-    const spuIds = [...new Set(
-      ordersResult.data.flatMap((order: any) => 
-        order.goodsList.map((goods: any) => goods.spuId)
-      ))
-    ];
-    // console.log('待查询的 spuIds:', spuIds);
-
-    // 批量获取商品信息
-    const spuResult = await db.collection('spu_db')
-      .where({
-        spuId: _.in(spuIds)
-      })
-      .limit(2000)
-      .get();
-    console.log('查询到的 SPU 数量:', spuResult.data.length);
-    console.log('SPU 数据示例:', spuResult.data[0]);
-
-    // 创建商品信息映射
-    const spuMap = new Map(
-      spuResult.data.map((spu: any) => [
-        spu.spuId,
-        {
-          desc: spu.desc || "无描述了",
-          title: spu.title || "未知SPU"
-        }
-      ])
-    );
-    // console.log('spuMap 大小:', spuMap.size);
-
     // 处理订单数据
     const processedOrders = ordersResult.data.map((order: any) => {
       const userInfo = userMap.get(order._openid) || {
         userStoreName: "未知店家",
+        userStoreNameLiankai: "",
         salesPerson: "未知",
         phoneNumber: ""
       };
 
+      // 处理商品列表
       const processedGoodsList = order.goodsList.map((goods: any) => {
-        const spuInfo = spuMap.get(goods.spuId) || {
-          desc: "无描述啊",
-          title: "未知SPU"
-        };
-        
-        const parsedDesc = parseDescription(spuInfo.desc);
-        
+        // 解析商品描述
+        const parsedDesc = parseDescription(goods.desc || "");
         return {
           ...goods,
-          desc: parsedDesc.formattedDesc,
-          unitType: parsedDesc.unitType,
-          unitsPerUnit: parsedDesc.unitsPerUnit,
-          totalUnitType: parsedDesc.totalUnitType,
-          title: spuInfo.title
+          ...parsedDesc
         };
       });
 
       return {
         ...order,
         userStoreName: userInfo.userStoreName,
+        userStoreNameLiankai: userInfo.userStoreNameLiankai,
         salesPerson: userInfo.salesPerson,
         userPhoneNumber: userInfo.phoneNumber,
         goodsList: processedGoodsList
       };
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      data: processedOrders 
-    }, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
+    return NextResponse.json({
+      success: true,
+      data: processedOrders
     });
   } catch (error) {
-    console.error('获取订单列表失败:', error);
-    return NextResponse.json({ success: false, error: '获取失败' }, { status: 500 });
+    // console.error("[Orders API] Error fetching orders:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch orders" },
+      { status: 500 }
+    );
   }
 }
 
