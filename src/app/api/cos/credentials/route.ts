@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import STS from 'qcloud-cos-sts';
 
+export const runtime = 'edge';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 // 如果 CredentialData 类型不可用，我们可以定义一个接口
 interface CredentialData {
   credentials: {
