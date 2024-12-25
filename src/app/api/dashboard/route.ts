@@ -123,7 +123,7 @@ export async function GET() {
     // 获取所有订单
     const ordersResult = await db.collection('orders')
       .where({
-        orderStatus: _.in([10, 40, 50, 80, 90]),
+        orderStatus: _.in([10, 40, 50]),
       })
       .limit(2000)
       .get();
