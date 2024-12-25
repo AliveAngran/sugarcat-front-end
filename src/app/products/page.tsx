@@ -376,7 +376,7 @@ function ProductManagement() {
       }
     } catch (error) {
       console.error("添加商品失败:", error);
-      alert("添加失败，请��试");
+      alert("添加失败，请试");
     }
   };
 
@@ -434,7 +434,7 @@ function ProductManagement() {
           etitle: '',
           desc: firstRow['规格型号'] || firstRow['规格'] || '',
           spuId: String(parseInt(firstRow['新条码'] || firstRow['条码'] || '0')),
-          brand: '',  // 可以从Excel���件名中提取
+          brand: '',  // 可以从Excel文件名中提取
           price: String(firstRow['小程序价格'] || firstRow['小程序'] || '0'),
           minSalePrice: String(firstRow['小程序价格'] || firstRow['小程序价'] || '0'),
           maxLinePrice: String(firstRow['零售价'] || firstRow['建议零售价'] || '0'),
@@ -722,7 +722,7 @@ function ProductManagement() {
     );
   };
 
-  // 修改生成毛利��的处理函数
+  // 修改生成毛利图的处理函数
   const handleGenerateGrossMarginImage = async (product: Product) => {
     try {
       if (product.images.length === 1 && product.images[0].includes('-ZT')) {
@@ -905,6 +905,28 @@ function ProductManagement() {
   //     alert('清除每月新品分类失败: ' + (error instanceof Error ? error.message : '未知错误'));
   //   }
   // };
+
+  // 添加清空缓存的处理函数
+  const handleClearCache = async () => {
+    try {
+      const response = await fetch('/api/cos/credentials', {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+
+      if (response.ok) {
+        alert('缓存已清空');
+      } else {
+        throw new Error('清空缓存失败');
+      }
+    } catch (error) {
+      console.error('清空缓存失败:', error);
+      alert('清空缓存失败，请重试');
+    }
+  };
 
   if (!isAuthorized) {
     return null; // 未授权时不渲染任何内容，等待重定向
@@ -1316,15 +1338,23 @@ function ProductManagement() {
                 </div>
               </div>
 
-              {/* 修改底部钮区域，添加删除按钮 */}
+              {/* 修改底部按钮区域，添加删除按钮 */}
               <div className="p-6 border-t flex justify-between flex-shrink-0">
-                {/* 左侧放删除按钮 */}
-                <button
-                  onClick={() => setIsDeleteConfirmOpen(true)}
-                  className="px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600"
-                >
-                  除商品
-                </button>
+                {/* 左侧放删除和清空缓存按钮 */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsDeleteConfirmOpen(true)}
+                    className="px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600"
+                  >
+                    删除商品
+                  </button>
+                  <button
+                    onClick={handleClearCache}
+                    className="px-4 py-2 text-white bg-orange-500 rounded-lg hover:bg-orange-600"
+                  >
+                    清空缓存
+                  </button>
+                </div>
 
                 {/* 右侧放取消和保存按钮 */}
                 <div className="flex gap-2">
@@ -1409,7 +1439,7 @@ function ProductManagement() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">英文名称</label>
+                      <label className="block text-sm font-medium text-gray-700">英��名称</label>
                       <input
                         type="text"
                         value={newProduct.etitle}
