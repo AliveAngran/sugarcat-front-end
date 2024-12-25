@@ -11,10 +11,13 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@amap/amap-jsapi-loader": "^1.0.1",
+    "@ant-design/icons": "^5.5.2",
     "@cloudbase/js-sdk": "^1.7.2",
     "@cloudbase/node-sdk": "^2.11.0",
     "@nivo/heatmap": "^0.87.0",
     "@nivo/network": "^0.87.0",
+    "antd": "^5.22.6",
     "canvas": "^2.11.2",
     "chart.js": "^4.4.6",
     "chartjs-plugin-datalabels": "^2.2.0",
