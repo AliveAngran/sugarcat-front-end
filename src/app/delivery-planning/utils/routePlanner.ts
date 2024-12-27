@@ -29,7 +29,7 @@ export class RoutePlanner {
     this.vehicles = [...vehicles].sort((a, b) => b.priority - a.priority);
     // 使用湖州林欣雅网络科技有限公司作为配送中心
     this.depot = {
-      latitude: 30.877369,
+      latitude: 30.537702,
       longitude: 120.093902
     };
     this.onProgress = onProgress;
@@ -77,19 +77,11 @@ export class RoutePlanner {
         let cluster = clusters[i];
         this.updateProgress(i + 1, clusters.length, `正在处理第${i + 1}个区域，共${clusters.length}个区域`);
         
-        // 计算该区域的中心点到配送中心的距离
-        const clusterCenter = this.calculateClusterCenter(cluster);
-        let distanceToDepot = this.calculateDistance(this.depot, clusterCenter);
-        
-        // 估算该区域所需时间
-        let estimatedTime = this.estimateRouteTime(cluster);
-        
         // 选择合适的车辆
         let selectedVehicle = null;
-        let bestClusterSize = 0;
         
         // 尝试不同的聚类大小
-        while (cluster.length > 0 && !selectedVehicle) {
+        while (cluster.length > 0) {
           for (const vehicle of this.vehicles) {
             // 检查是否已被分配
             if (routes.some(r => r.vehicle.id === vehicle.id)) continue;
@@ -99,135 +91,77 @@ export class RoutePlanner {
               const subClusters = this.splitLargeCluster(cluster, vehicle.maxStores);
               if (subClusters.length > 0) {
                 // 使用第一个子聚类
-                const newCluster = subClusters[0];
-                
-                // 重新计算时间和距离
-                const newClusterCenter = this.calculateClusterCenter(newCluster);
-                const newDistanceToDepot = this.calculateDistance(this.depot, newClusterCenter);
-                const newEstimatedTime = this.estimateRouteTime(newCluster);
-                
-                // 检查限制条件
-                if (newDistanceToDepot * 2 <= vehicle.maxDistance &&
-                    newEstimatedTime <= vehicle.maxWorkHours * 60 &&
-                    newCluster.length <= vehicle.maxStores) {
-                  selectedVehicle = vehicle;
-                  cluster = newCluster;
-                  // 将剩余子聚类加回待处理列表
-                  clusters.push(...subClusters.slice(1));
-                  break;
-                }
-              }
-            } else {
-              // 检查限制条件
-              if (distanceToDepot * 2 <= vehicle.maxDistance &&
-                  estimatedTime <= vehicle.maxWorkHours * 60) {
+                cluster = subClusters[0];
+                // 将剩余子聚类加回待处理列表
+                clusters.push(...subClusters.slice(1));
                 selectedVehicle = vehicle;
                 break;
               }
+            } else {
+              selectedVehicle = vehicle;
+              break;
             }
           }
           
-          // 如果没找到合适的车辆，减少聚类大小
-          if (!selectedVehicle && cluster.length > 3) {
-            const reducedCluster = cluster.slice(0, Math.floor(cluster.length * 0.8));
-            const remainingStores = cluster.slice(Math.floor(cluster.length * 0.8));
-            cluster = reducedCluster;
-            if (remainingStores.length > 0) {
-              clusters.push(remainingStores);
-            }
-            // 重新计算距离和时间
-            const newClusterCenter = this.calculateClusterCenter(cluster);
-            distanceToDepot = this.calculateDistance(this.depot, newClusterCenter);
-            estimatedTime = this.estimateRouteTime(cluster);
-          } else {
+          // 如果没有可用车辆，将当前聚类加入未分配列表
+          if (!selectedVehicle) {
+            unassignedStores.push(...cluster);
             break;
           }
+          
+          // 构建路线
+          const route = await this.buildRoute(cluster, selectedVehicle);
+          routes.push(route);
+          break;
         }
-        
-        if (!selectedVehicle) {
-          console.warn('区域', i + 1, '未找到合适的车辆，将店铺加入未分配列表');
-          unassignedStores.push(...cluster);
-          continue;
-        }
-        
-        // 构建路线
-        const route = await this.buildRoute(cluster, selectedVehicle);
-        routes.push(route);
       }
 
       // 处理未分配的店铺
       if (unassignedStores.length > 0) {
         console.log('尝试处理未分配的店铺:', unassignedStores.length);
         
-        // 将未分配的店铺按距离分组，尽量使用较小的组
-        const maxGroupSize = Math.min(
-          10,
-          Math.max(...this.vehicles.map(v => v.maxStores)) / 2
-        );
-        
-        // 按距离排序
+        // 将未分配的店铺按距离分组
         const sortedStores = [...unassignedStores].sort((a, b) => {
           const distanceA = this.calculateDistance(this.depot, a.location!);
           const distanceB = this.calculateDistance(this.depot, b.location!);
           return distanceA - distanceB;
         });
         
-        // 分成小组
-        let currentGroup: Store[] = [];
+        // 为每个已有路线尝试添加更多店铺
         for (const store of sortedStores) {
-          currentGroup.push(store);
+          let assigned = false;
           
-          // 当组达到一定大小或是最后一个店铺时，尝试分配
-          if (currentGroup.length >= maxGroupSize || store === sortedStores[sortedStores.length - 1]) {
-            // 尝试为当前组找到可用的车辆
-            for (const vehicle of this.vehicles) {
-              // 跳过已分配的车辆
-              if (routes.some(r => r.vehicle.id === vehicle.id)) continue;
-              
-              // 检查限制
-              const estimatedTime = this.estimateRouteTime(currentGroup);
-              const maxDistance = this.calculateMaxDistance(currentGroup);
-              
-              if (maxDistance <= vehicle.maxDistance &&
-                  estimatedTime <= vehicle.maxWorkHours * 60 &&
-                  currentGroup.length <= vehicle.maxStores) {
-                // 构建路线
-                const route = await this.buildRoute(currentGroup, vehicle);
-                routes.push(route);
-                currentGroup = []; // 清空当前组
-                break;
-              }
+          // 尝试添加到现有路线
+          for (const route of routes) {
+            if (route.stops.length < route.vehicle.maxStores) {
+              const newStores = [...route.stops.map(s => s.store), store];
+              const newRoute = await this.buildRoute(newStores, route.vehicle);
+              routes[routes.indexOf(route)] = newRoute;
+              assigned = true;
+              break;
             }
+          }
+          
+          // 如果无法添加到现有路线，创建新路线
+          if (!assigned) {
+            // 找到一个未使用的车辆
+            const availableVehicle = this.vehicles.find(v => 
+              !routes.some(r => r.vehicle.id === v.id)
+            );
             
-            // 如果没有找到合适的车辆，减少组大小再试
-            if (currentGroup.length > 0) {
-              const reducedGroup = currentGroup.slice(0, Math.max(3, Math.floor(currentGroup.length * 0.7)));
-              for (const vehicle of this.vehicles) {
-                if (routes.some(r => r.vehicle.id === vehicle.id)) continue;
-                
-                const estimatedTime = this.estimateRouteTime(reducedGroup);
-                const maxDistance = this.calculateMaxDistance(reducedGroup);
-                
-                if (maxDistance <= vehicle.maxDistance &&
-                    estimatedTime <= vehicle.maxWorkHours * 60 &&
-                    reducedGroup.length <= vehicle.maxStores) {
-                  const route = await this.buildRoute(reducedGroup, vehicle);
-                  routes.push(route);
-                  // 将未能分配的店铺放回待处理列表
-                  currentGroup = currentGroup.slice(reducedGroup.length);
-                  break;
-                }
-              }
+            if (availableVehicle) {
+              const route = await this.buildRoute([store], availableVehicle);
+              routes.push(route);
+            } else {
+              // 如果所有车辆都已使用，添加到最不满的路线
+              const leastFullRoute = routes
+                .sort((a, b) => a.stops.length - b.stops.length)[0];
+              const newStores = [...leastFullRoute.stops.map(s => s.store), store];
+              const newRoute = await this.buildRoute(newStores, leastFullRoute.vehicle);
+              routes[routes.indexOf(leastFullRoute)] = newRoute;
             }
           }
         }
-      }
-
-      if (routes.length === 0) {
-        return {
-          success: false,
-          error: '未能生成有效的配送路线'
-        };
       }
 
       // 平衡路线
@@ -751,7 +685,7 @@ export class RoutePlanner {
   private clusterStoresByRegion(stores: Store[]): Store[][] {
     // 使用基于距离的分层聚类
     const clusters: Store[][] = [];
-    const maxClusterRadius = 15; // 减小最大聚类半径为15公里
+    const maxClusterRadius = 15; // 最大聚类半径(公里)
     
     // 按到配送中心的距离排序
     const sortedStores = [...stores].sort((a, b) => {
@@ -780,13 +714,8 @@ export class RoutePlanner {
         // 如果距离在阈值内且不会导致超出车辆限制,加入当前聚类
         if (distance <= maxClusterRadius) {
           const newCluster = [...cluster, store];
-          const estimatedTime = this.estimateRouteTime(newCluster);
-          const maxDistance = this.calculateMaxDistance(newCluster);
-          
-          // 检查是否有车辆可以处理这个扩展后的聚类
+          // 只检查店铺数量限制
           const hasValidVehicle = this.vehicles.some(v => 
-            v.maxDistance >= maxDistance &&
-            v.maxWorkHours * 60 >= estimatedTime &&
             v.maxStores >= newCluster.length
           );
           
@@ -808,7 +737,7 @@ export class RoutePlanner {
    * 合并小聚类
    */
   private mergeSmallClusters(clusters: Store[][]): Store[][] {
-    const minClusterSize = 3; // 减小最小聚类大小为3
+    const minClusterSize = 3; // 最小聚类大小
     const result: Store[][] = [];
     
     // 先处理大聚类
@@ -818,24 +747,19 @@ export class RoutePlanner {
     // 收集小聚类
     const smallClusters = clusters.filter(c => c.length < minClusterSize);
     
-    // 尝试将小聚类合并到最近的大聚类
+    // 尝试将小聚类合并到最近的聚类
     for (const smallCluster of smallClusters) {
       let bestDistance = Number.MAX_VALUE;
       let bestClusterIndex = -1;
       
-      // 找到最近的聚类(不限于大聚类)
+      // 找到最近的聚类
       for (let i = 0; i < result.length; i++) {
         const targetCluster = result[i];
         const distance = this.calculateClusterDistance(smallCluster, targetCluster);
         
         // 检查合并后是否有车辆可以处理
         const mergedCluster = [...targetCluster, ...smallCluster];
-        const estimatedTime = this.estimateRouteTime(mergedCluster);
-        const maxDistance = this.calculateMaxDistance(mergedCluster);
-        
         const hasValidVehicle = this.vehicles.some(v => 
-          v.maxDistance >= maxDistance &&
-          v.maxWorkHours * 60 >= estimatedTime &&
           v.maxStores >= mergedCluster.length
         );
         
@@ -846,7 +770,7 @@ export class RoutePlanner {
       }
       
       // 如果找到合适的聚类且距离不太远,就合并
-      if (bestClusterIndex >= 0 && bestDistance <= 20) { // 减小合并距离阈值为20公里
+      if (bestClusterIndex >= 0 && bestDistance <= 20) { // 20公里阈值
         result[bestClusterIndex].push(...smallCluster);
       } else {
         // 否则作为独立聚类

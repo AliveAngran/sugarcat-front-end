@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import type { Store } from '@/app/delivery-planning/types';
-import storeListData from '@/app/delivery-planning/files/store1226.json';
+import storeListData from '@/app/delivery-planning/files/store1227.json';
 
 const STORE_LOCATIONS_FILE = path.join(process.cwd(), 'src/app/delivery-planning/data/storeLocations.json');
 

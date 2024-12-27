@@ -15,7 +15,7 @@ const VEHICLES: Vehicle[] = [
     name: '货车W56',
     type: 'truck',
     maxLoad: 5000,      // 5吨
-    maxDistance: 300,    // 300公里
+    maxDistance: 500,    // 300公里
     maxWorkHours: 9,    // 9小时
     maxStores: 30,      // 增加到30家店
     priority: 3         // 高优先级
@@ -25,7 +25,7 @@ const VEHICLES: Vehicle[] = [
     name: '货车K3',
     type: 'truck',
     maxLoad: 5000,
-    maxDistance: 300,
+    maxDistance: 500,
     maxWorkHours: 9,
     maxStores: 30,
     priority: 3
@@ -35,7 +35,7 @@ const VEHICLES: Vehicle[] = [
     name: '货车9676',
     type: 'truck',
     maxLoad: 5000,
-    maxDistance: 300,
+    maxDistance: 500,
     maxWorkHours: 9,
     maxStores: 30,
     priority: 3
@@ -148,8 +148,15 @@ const DeliveryPlanningPage: React.FC = () => {
       }
 
       setPlanningResults(result.routes);
+      
+      // 计算未分配的店铺
+      const assignedStoreIds = new Set(
+        result.routes.flatMap(route => route.stops.map(stop => stop.store.id))
+      );
+      const unassignedStores = stores.filter(store => !assignedStoreIds.has(store.id));
+      
       message.success({
-        content: `路线规划完成: 共${result.routes.length}条路线`,
+        content: `路线规划完成: 共${result.routes.length}条路线，已分配${assignedStoreIds.size}家店铺，未分配${unassignedStores.length}家店铺`,
         duration: 5,
         style: {
           marginTop: '20vh',
@@ -164,59 +171,172 @@ const DeliveryPlanningPage: React.FC = () => {
     }
   };
 
-  // 渲染导航步骤
-  const renderNavigationSteps = (steps: NavigationStep[]) => {
-    return (
-      <div className="space-y-2">
-        {steps.map((step, index) => (
-          <div key={index} className="p-2 bg-gray-50 rounded">
-            <div className="font-medium">{step.instruction}</div>
-            <div className="text-sm text-gray-500">
-              {step.road} ({(step.distance / 1000).toFixed(1)}公里, 约{Math.ceil(step.duration / 60)}分钟)
-            </div>
-            <div className="mt-1">
-              <a 
-                href={step.navigationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                打开高德地图导航 →
-              </a>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  // 渲染单个路线的详细信息
+  const renderRouteDetail = (route: DeliveryRoute) => {
+    // 计算实际总时间（行驶时间 + 停留时间）
+    const totalStopDuration = route.stops.reduce((sum, stop) => sum + stop.estimatedDuration, 0);
+    const totalDrivingDuration = Math.ceil(route.totalDuration);
+    const actualTotalDuration = totalDrivingDuration + totalStopDuration;
 
-  // 渲染停靠点列表
-  const renderStops = (stops: RouteStop[]) => {
     return (
-      <div className="space-y-4">
-        {stops.map((stop, index) => (
-          <div key={index} className="p-3 bg-gray-50 rounded">
-            {/* 行驶信息 */}
-            {stop.drivingInfo && (
-              <div className="mb-2 text-sm text-blue-600">
-                <div>从 {stop.drivingInfo.from}</div>
-                <div>到 {stop.drivingInfo.to}</div>
-                <div>行驶距离: {(stop.drivingInfo.distance / 1000).toFixed(1)}公里</div>
-                <div>行驶时间: {Math.ceil(stop.drivingInfo.duration / 60)}分钟</div>
-              </div>
-            )}
-            {/* 店铺信息 */}
-            <div className="font-medium">{stop.store.name}</div>
-            <div className="text-sm text-gray-500">
-              预计到达: {stop.estimatedArrival}
-              <br />
-              停留时间: {stop.estimatedDuration}分钟
-              <br />
-              地址: {stop.store.address}
-            </div>
-          </div>
-        ))}
-      </div>
+      <Card className="mb-4">
+        <Tabs
+          defaultActiveKey="overview"
+          items={[
+            {
+              key: 'overview',
+              label: '路线概览',
+              children: (
+                <div className="space-y-4">
+                  {/* 车辆信息 */}
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="text-lg font-medium mb-2">{route.vehicle.name}</div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-gray-500">载重能力</div>
+                        <div>{route.vehicle.maxLoad}kg</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">最大行驶</div>
+                        <div>{route.vehicle.maxDistance}公里</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">工作时间</div>
+                        <div>{route.vehicle.maxWorkHours}小时</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">最大店铺数</div>
+                        <div>{route.vehicle.maxStores}家</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 路线统计 */}
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="text-lg font-medium mb-2">路线统计</div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-gray-500">总距离</div>
+                        <div>{(route.totalDistance / 1000).toFixed(1)}公里</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">总时间</div>
+                        <div>{actualTotalDuration}分钟</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">行驶时间</div>
+                        <div>{totalDrivingDuration}分钟</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">停留时间</div>
+                        <div>{totalStopDuration}分钟</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">店铺数量</div>
+                        <div>{route.stops.length}家</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">平均停留</div>
+                        <div>{Math.round(totalStopDuration / route.stops.length)}分钟/店</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 完整路线导航 */}
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <div className="text-lg font-medium mb-2">一键导航</div>
+                    <a 
+                      href={route.navigationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    >
+                      打开完整路线导航
+                    </a>
+                  </div>
+                </div>
+              )
+            },
+            {
+              key: 'stops',
+              label: '店铺列表',
+              children: (
+                <div className="space-y-4">
+                  {route.stops.map((stop, index) => (
+                    <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="text-lg font-medium">{stop.store.name}</div>
+                          <div className="text-gray-500">{stop.store.address}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-500">预计到达</div>
+                          <div>{stop.estimatedArrival}</div>
+                        </div>
+                      </div>
+                      
+                      {stop.drivingInfo && (
+                        <div className="mt-2 pt-2 border-t">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <div className="text-gray-500">从</div>
+                              <div>{stop.drivingInfo.from}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-500">到</div>
+                              <div>{stop.drivingInfo.to}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-500">行驶距离</div>
+                              <div>{(stop.drivingInfo.distance / 1000).toFixed(1)}公里</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-500">行驶时间</div>
+                              <div>{Math.ceil(stop.drivingInfo.duration / 60)}分钟</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            },
+            {
+              key: 'navigation',
+              label: '导航步骤',
+              children: (
+                <div className="space-y-4">
+                  {route.navigationSteps.map((step, index) => (
+                    <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">{step.instruction}</div>
+                          <div className="text-gray-500 mt-1">{step.road}</div>
+                        </div>
+                        <div className="text-right">
+                          <div>{(step.distance / 1000).toFixed(1)}公里</div>
+                          <div className="text-gray-500">约{Math.ceil(step.duration / 60)}分钟</div>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <a 
+                          href={step.navigationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center"
+                        >
+                          打开导航 <span className="ml-1">→</span>
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+          ]}
+        />
+      </Card>
     );
   };
 
@@ -237,86 +357,6 @@ const DeliveryPlanningPage: React.FC = () => {
       key: 'status',
       render: (_: unknown, record: Store) => (
         record.location ? '已定位' : '未定位'
-      ),
-    },
-  ];
-
-  const routeColumns = [
-    {
-      title: '路线编号',
-      key: 'index',
-      render: (_: unknown, __: unknown, index: number) => `路线 ${index + 1}`,
-    },
-    {
-      title: '配送车辆',
-      key: 'vehicle',
-      render: (_: unknown, record: DeliveryRoute) => (
-        <div>
-          <div className="font-medium">{record.vehicle.name}</div>
-          <div className="text-sm text-gray-500">
-            载重: {record.vehicle.maxLoad}kg
-            <br />
-            最大行驶: {record.vehicle.maxDistance}公里
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: '配送信息',
-      key: 'delivery',
-      render: (_: unknown, record: DeliveryRoute) => {
-        // 计算实际总时间（行驶时间 + 停留时间）
-        const totalStopDuration = record.stops.reduce((sum, stop) => sum + stop.estimatedDuration, 0);
-        const totalDrivingDuration = Math.ceil(record.totalDuration);
-        const actualTotalDuration = totalDrivingDuration + totalStopDuration;
-        
-        return (
-          <div>
-            <div>总距离: {(record.totalDistance / 1000).toFixed(1)}公里</div>
-            <div>行驶时间: {totalDrivingDuration}分钟</div>
-            <div>停留时间: {totalStopDuration}分钟</div>
-            <div className="text-blue-600">实际总时间: {actualTotalDuration}分钟</div>
-            <div>店铺数: {record.stops.length}家</div>
-          </div>
-        );
-      },
-    },
-    {
-      title: '详细信息',
-      key: 'details',
-      render: (_: unknown, record: DeliveryRoute) => (
-        <Collapse ghost>
-          <Collapse.Panel header="查看详情" key="1">
-            <Descriptions title="配送路线详情" column={1} bordered size="small">
-              <Descriptions.Item label="车辆信息">
-                <div>
-                  名称: {record.vehicle.name}
-                  <br />
-                  类型: {record.vehicle.type}
-                  <br />
-                  最大载重: {record.vehicle.maxLoad}kg
-                  <br />
-                  最大行驶距离: {record.vehicle.maxDistance}公里
-                </div>
-              </Descriptions.Item>
-              <Descriptions.Item label="路线概况">
-                <div>
-                  总距离: {(record.totalDistance / 1000).toFixed(1)}公里
-                  <br />
-                  总时长: {record.totalDuration}分钟
-                  <br />
-                  店铺数量: {record.stops.length}家
-                </div>
-              </Descriptions.Item>
-              <Descriptions.Item label="停靠点">
-                {renderStops(record.stops)}
-              </Descriptions.Item>
-              <Descriptions.Item label="导航步骤">
-                {renderNavigationSteps(record.navigationSteps)}
-              </Descriptions.Item>
-            </Descriptions>
-          </Collapse.Panel>
-        </Collapse>
       ),
     },
   ];
@@ -408,13 +448,95 @@ const DeliveryPlanningPage: React.FC = () => {
       </Card>
       
       {planningResults && planningResults.length > 0 && (
-        <Card title="分配方案">
-          <Table
-            dataSource={planningResults}
-            columns={routeColumns}
-            rowKey={(_, index) => `route-${index}`}
-            pagination={false}
-            size="small"
+        <Card 
+          title={
+            <div className="flex justify-between items-center">
+              <span>配送方案</span>
+              <div className="text-right">
+                <div className="text-gray-500">
+                  共{planningResults.length}条路线，
+                  {planningResults.reduce((sum, route) => sum + route.stops.length, 0)}家店铺
+                </div>
+                <div className="text-orange-500 text-sm">
+                  {stores.length - planningResults.reduce((sum, route) => sum + route.stops.length, 0)}家店铺未分配
+                </div>
+              </div>
+            </div>
+          }
+        >
+          <div className="mb-4 bg-orange-50 p-4 rounded-lg">
+            <div className="font-medium mb-2">规划说明</div>
+            <div className="text-sm text-gray-600">
+              • 车辆配置：
+              <br />
+              - 货车：建议配送30家店铺
+              <br />
+              - 金杯车：建议配送25家店铺
+              <br />
+              • 规划策略：
+              <br />
+              - 优先使用货车配送
+              <br />
+              - 优先处理远距离区域
+              <br />
+              - 确保所有店铺都被分配到路线中
+            </div>
+          </div>
+
+          <Tabs
+            defaultActiveKey="0"
+            items={[
+              ...planningResults.map((route, index) => ({
+                key: String(index),
+                label: `路线 ${index + 1} (${route.vehicle.name})`,
+                children: renderRouteDetail(route)
+              })),
+              {
+                key: 'unassigned',
+                label: `未分配店铺 (${stores.length - planningResults.reduce((sum, route) => sum + route.stops.length, 0)})`,
+                children: (
+                  <div className="space-y-4">
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                      以下店铺由于各种限制条件未能分配到路线中：
+                    </div>
+                    <Table
+                      dataSource={stores.filter(store => 
+                        !planningResults.some(route => 
+                          route.stops.some(stop => stop.store.id === store.id)
+                        )
+                      )}
+                      columns={[
+                        {
+                          title: '店铺名称',
+                          dataIndex: 'name',
+                          key: 'name',
+                        },
+                        {
+                          title: '地址',
+                          dataIndex: 'address',
+                          key: 'address',
+                        },
+                        {
+                          title: '到配送中心距离',
+                          key: 'distance',
+                          render: (_, record: Store) => {
+                            if (!record.location) return '-';
+                            const distance = Math.sqrt(
+                              Math.pow(record.location.latitude - 30.877369, 2) +
+                              Math.pow(record.location.longitude - 120.093902, 2)
+                            ) * 111; // 粗略计算公里数
+                            return `${distance.toFixed(1)}公里`;
+                          }
+                        }
+                      ]}
+                      rowKey="id"
+                      size="small"
+                      pagination={false}
+                    />
+                  </div>
+                )
+              }
+            ]}
           />
         </Card>
       )}
