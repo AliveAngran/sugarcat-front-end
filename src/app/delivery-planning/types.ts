@@ -31,13 +31,26 @@ export interface NavigationStep {
   distance: number;    // 该步骤的距离
   duration: number;    // 预计用时(秒)
   path: string;        // 路径坐标串
+  navigationUrl: string; // 该步骤的导航链接
 }
 
 // 站点信息
 export interface RouteStop {
   store: Store;
-  estimatedArrival: string;  // 预计到达时间
-  estimatedDuration: number; // 停留时间(分钟)
+  estimatedArrival: string;    // 预计到达时间
+  estimatedDuration: number;   // 停留时间(分钟)
+  drivingInfo?: {             // 到达该站点的行驶信息
+    distance: number;         // 行驶距离(米)
+    duration: number;         // 行驶时间(秒)
+    from: string;            // 从哪里出发
+    to: string;              // 到达哪里
+    returnInfo?: {           // 返回配送中心的行驶信息（最后一个站点才有）
+      distance: number;      // 返程距离(米)
+      duration: number;      // 返程时间(秒)
+      from: string;         // 从哪里出发
+      to: string;          // 到达哪里
+    };
+  };
 }
 
 // 修改配送路线接口
@@ -47,6 +60,7 @@ export interface DeliveryRoute {
   totalDistance: number;
   totalDuration: number;     // 总行驶时间(分钟) 
   navigationSteps: NavigationStep[];
+  navigationUrl: string; // 高德导航链接
 }
 
 // 规划结果
@@ -60,16 +74,32 @@ export interface PlanningResult {
 export interface AMapRouteResponse {
   status: string;
   info: string;
+  infocode: string;
+  count: string;
   route: {
+    origin?: string;
+    destination?: string;
+    taxi_cost?: string;
     paths: Array<{
       distance: string;
-      duration: string;
+      duration: string;  // 路线总耗时
+      restriction: string;
+      cost?: {
+        duration: string;  // 路线耗时
+        tolls?: string;   // 道路收费
+        toll_distance?: string;  // 收费路段里程
+      };
       steps: Array<{
-        instruction?: string;
+        instruction: string;
+        orientation?: string;
         road_name?: string;
-        path: string;
-        distance?: string;
-        duration?: string;
+        step_distance?: string;
+        polyline?: string;
+        duration?: string;  // 当前路段耗时
+        tmcs?: Array<{
+          tmc_status: string;
+          tmc_distance: string;
+        }>;
       }>;
     }>;
   };
@@ -79,5 +109,6 @@ export interface AMapRouteResponse {
 export interface ImportResponse {
   success: boolean;
   stores?: Store[];
+  unlocatedStores?: Store[];  // 未能定位的店铺
   error?: string;
 } 
