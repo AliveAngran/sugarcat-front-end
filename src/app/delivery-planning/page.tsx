@@ -363,41 +363,58 @@ const DeliveryPlanningPage: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <Card title="配送规划">
-        <div className="space-y-4">
-          <div className="space-x-4">
-            <Button 
-              type="primary" 
-              onClick={handleLoadStores}
-              loading={loading}
-            >
-              加载店铺数据
-            </Button>
-            
-            <Button 
-              onClick={handlePlanRoutes}
-              loading={loading}
-              disabled={!stores.length}
-            >
-              开始路线规划
-            </Button>
-          </div>
+      <div className="flex justify-between items-center mb-4">
+        <Card title="配送规划">
+          <div className="space-y-4">
+            <div className="space-x-4">
+              <Button 
+                type="primary" 
+                onClick={handleLoadStores}
+                loading={loading}
+              >
+                加载店铺数据
+              </Button>
+              
+              <Button 
+                onClick={handlePlanRoutes}
+                loading={loading}
+                disabled={!stores.length}
+              >
+                开始路线规划
+              </Button>
 
-          {/* 进度显示 */}
-          {loading && planningProgress.total > 0 && (
-            <div className="mt-4">
-              <div className="text-sm text-gray-600 mb-2">
-                {planningProgress.status}
-              </div>
-              <Progress 
-                percent={Math.round((planningProgress.current / planningProgress.total) * 100)}
-                status="active"
-                format={(percent) => `${planningProgress.current}/${planningProgress.total} (${percent}%)`}
-              />
+              <Button 
+                type="link"
+                href="/lucky-draw"
+                className="float-right"
+                style={{ 
+                  background: 'linear-gradient(45deg, #e74c3c, #f39c12)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '4px 15px'
+                }}
+              >
+                🎉 抽奖活动
+              </Button>
             </div>
-          )}
-        </div>
-      </Card>
+
+            {/* 进度显示 */}
+            {loading && planningProgress.total > 0 && (
+              <div className="mt-4">
+                <div className="text-sm text-gray-600 mb-2">
+                  {planningProgress.status}
+                </div>
+                <Progress 
+                  percent={Math.round((planningProgress.current / planningProgress.total) * 100)}
+                  status="active"
+                  format={(percent) => `${planningProgress.current}/${planningProgress.total} (${percent}%)`}
+                />
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
 
       {(stores.length > 0 || unlocatedStores.length > 0) && (
         <Card title="店铺列表">
