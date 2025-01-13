@@ -382,21 +382,6 @@ const DeliveryPlanningPage: React.FC = () => {
               >
                 开始路线规划
               </Button>
-
-              <Button 
-                type="link"
-                href="/lucky-draw"
-                className="float-right"
-                style={{ 
-                  background: 'linear-gradient(45deg, #e74c3c, #f39c12)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '20px',
-                  padding: '4px 15px'
-                }}
-              >
-                🎉 抽奖活动
-              </Button>
             </div>
 
             {/* 进度显示 */}

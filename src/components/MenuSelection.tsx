@@ -6,7 +6,9 @@ export default function MenuSelection() {
     { title: '数据看板', path: '/dashboard', icon: '📊' },
     { title: '订单管理', path: '/orders', icon: '📋' },
     { title: '货品管理', path: '/products', icon: '📦' },
-    { title: '配送规划', path: '/delivery-planning', icon: '🚚' },
+    { title: '配送规划', path: '/delivery-planning', icon: '��' },
+    { title: '店铺管理', path: '/store-management', icon: '🏪' },
+    { title: '抽奖活动', path: '/lucky-draw', icon: '🎉' },
   ];
 
   return (
