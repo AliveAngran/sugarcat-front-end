@@ -101,6 +101,7 @@ type OrderType = {
   _openid: string;
   salesPerson?: string;
   isExported?: boolean;
+  originalAmount?: number;
 };
 
 // 在文件顶部添加常量定义
@@ -694,7 +695,7 @@ function OrderList() {
           配送业务员: order.salesPerson || "",
           "销售/退货": "销售",
           日期: dateToExcelSerial(order.createTime), // 使用Excel日期序列值
-          备注: "小程序",
+          备注: `小程序（满减${formatMoney(order.goodsList.reduce((total, goods) => total + goods.price * goods.quantity, 0) - order.paymentAmount)}元）`,
           操作人: "",
           产品名称: spuTitleMap.get(goods.spuId) || goods.goodsName,
           商品编码: goods.spuId,
@@ -1002,16 +1003,37 @@ function OrderList() {
                   <span>{order.salesPerson || "未知"}</span>
                 </div>
               </div>
-              <div
-                className={`text-lg font-medium ${
+              <div className="flex items-center space-x-8">
+                <div className={`text-lg font-medium ${
                   order.payStatus === "UNPAID"
                     ? "text-rose-600"
                     : order.orderStatus === 80
                     ? "text-gray-500"
-                    : "text-rose-600" // 统一使用玫瑰色
-                }`}
-              >
-                ¥{formatMoney(order.paymentAmount)}
+                    : "text-rose-600"
+                }`}>
+                  <div className="text-sm text-gray-500">原金额</div>
+                  ¥{formatMoney(order.goodsList.reduce((total, goods) => total + goods.price * goods.quantity, 0))}
+                </div>
+                <div className={`text-lg font-medium ${
+                  order.payStatus === "UNPAID"
+                    ? "text-rose-600"
+                    : order.orderStatus === 80
+                    ? "text-gray-500"
+                    : "text-green-600"
+                }`}>
+                  <div className="text-sm text-gray-500">满减金额</div>
+                  ¥{formatMoney(order.goodsList.reduce((total, goods) => total + goods.price * goods.quantity, 0) - order.paymentAmount)}
+                </div>
+                <div className={`text-lg font-medium ${
+                  order.payStatus === "UNPAID"
+                    ? "text-rose-600"
+                    : order.orderStatus === 80
+                    ? "text-gray-500"
+                    : "text-rose-600"
+                }`}>
+                  <div className="text-sm text-gray-500">实付金额</div>
+                  ¥{formatMoney(order.paymentAmount)}
+                </div>
               </div>
               <div className="text-sm">
                 {formatDate(String(order.createTime))}
