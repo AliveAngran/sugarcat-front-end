@@ -18,6 +18,7 @@ const StoreManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
+  const [searchText, setSearchText] = useState('');
   const [form] = Form.useForm();
 
   // 获取店铺列表
@@ -78,6 +79,16 @@ const StoreManagementPage: React.FC = () => {
     }
   };
 
+  // 过滤数据
+  const filteredStores = stores.filter((store) => {
+    const searchLower = searchText.toLowerCase();
+    return (
+      store.userStoreName?.toLowerCase().includes(searchLower) ||
+      store.userStoreNameLiankai?.toLowerCase().includes(searchLower) ||
+      store.salesPerson?.toLowerCase().includes(searchLower)
+    );
+  });
+
   const columns: ColumnsType<Store> = [
     {
       title: '店铺名称',
@@ -118,10 +129,20 @@ const StoreManagementPage: React.FC = () => {
 
   return (
     <div className="p-6">
-      <Card title="店铺管理">
+      <Card 
+        title="店铺管理"
+        extra={
+          <Input.Search
+            placeholder="搜索店铺名称/连凯店铺名称/业务员"
+            allowClear
+            style={{ width: 300 }}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+        }
+      >
         <Table
           columns={columns}
-          dataSource={stores}
+          dataSource={filteredStores}
           rowKey="_openid"
           loading={loading}
           pagination={{
