@@ -44,12 +44,12 @@ export async function POST(request: Request) {
         );
       }
 
-      // 生成文件名和路径
-      const fileName = `${productId}-JGG.png`;  // 使用大写的 JGG
-      const filePath = `pics_v2/pic_JGG/${fileName}`;  // 新的文件路径格式
+      // 生成唯一的文件名
+      const timestamp = Date.now();
+      const fileName = `${productId}-NJGG-${timestamp}.${imageType}`;
 
-      // 上传到 COS，传入完整的文件路径
-      const { url: imageUrl } = await uploadBufferToCOS(buffer, filePath);
+      // 上传到 COS
+      const { url: imageUrl } = await uploadBufferToCOS(buffer, fileName);
 
       // 更新数据库
       const productsCollection = db.collection('spu_db');

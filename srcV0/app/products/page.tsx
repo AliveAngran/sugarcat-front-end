@@ -26,7 +26,6 @@ interface Product {
   origin: string;
   images: string[];
   buyAtMultipleTimes?: boolean;
-  multipleAmount?: string;
   createTime?: string;
   categoryIds?: string[];
   isPutOnSale: boolean;
@@ -726,56 +725,39 @@ function ProductManagement() {
   // 修改生成毛利图的处理函数
   const handleGenerateGrossMarginImage = async (product: Product) => {
     try {
-      // 检查必要的数据
-      if (!product.price || !product.originPrice) {
-        alert('生成毛利图需要商品的售价和原价信息');
-        return;
+      if (product.images.length === 1 && product.images[0].includes('-ZT')) {
+        setCurrentProduct(product); // 设置当前商品
+
+        const response = await fetch('/api/products/generate-margin-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          body: JSON.stringify({
+            productId: product.spuId,
+            title: product.title,
+            price: product.price,
+            originPrice: product.originPrice,
+            grossMargin: ((parseFloat(product.originPrice) - parseFloat(product.price)) / parseFloat(product.originPrice) * 100).toFixed(1)
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: '生成毛利图失败' }));
+          throw new Error(errorData.error || '生成毛利图失败');
+        }
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || '生成毛利图失败');
+        }
+
+        // 显示预览图片
+        setPreviewImage(result.previewImage);
+        setPreviewModalOpen(true);
       }
-
-      // 检查价格是否合法
-      const price = parseFloat(product.price);
-      const originPrice = parseFloat(product.originPrice);
-      if (isNaN(price) || isNaN(originPrice) || price <= 0 || originPrice <= 0) {
-        alert('商品的售价和原价必须是有效的正数');
-        return;
-      }
-
-      if (price >= originPrice) {
-        alert('售价不能大于或等于原价');
-        return;
-      }
-
-      setCurrentProduct(product); // 设置当前商品
-
-      const response = await fetch('/api/products/generate-margin-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        body: JSON.stringify({
-          productId: product.spuId,
-          title: product.title,
-          price: product.price,
-          originPrice: product.originPrice,
-          grossMargin: ((parseFloat(product.originPrice) - parseFloat(product.price)) / parseFloat(product.originPrice) * 100).toFixed(1)
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: '生成毛利图失败' }));
-        throw new Error(errorData.error || '生成毛利图失败');
-      }
-
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.error || '生成毛利图失败');
-      }
-
-      // 显示预览图片
-      setPreviewImage(result.previewImage);
-      setPreviewModalOpen(true);
     } catch (error) {
       console.error('生成毛利图失败:', error);
       alert(`生成毛利图失败: ${error instanceof Error ? error.message : '未知错误'}`);
@@ -1218,31 +1200,13 @@ function ProductManagement() {
                     />
                   </div>
 
-                  {/* 添加倍购选项 */}
-                  <div className="col-span-2">
-                    <div className="flex items-center space-x-4">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={editingProduct?.buyAtMultipleTimes || false}
-                          onChange={(e) => setEditingProduct(prev => ({ 
-                            ...prev!, 
-                            buyAtMultipleTimes: e.target.checked
-                          }))}
-                          className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                        />
-                        <span className="text-sm font-medium text-gray-700">倍购</span>
-                      </label>
-                    </div>
-                  </div>
-
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">规格描述</label>
-                    <input
-                      type="text"
+                    <textarea
                       value={editingProduct?.desc || ''}
                       onChange={(e) => setEditingProduct(prev => ({ ...prev!, desc: e.target.value }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={3}
                     />
                   </div>
 
@@ -1475,7 +1439,7 @@ function ProductManagement() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">英文名称</label>
+                      <label className="block text-sm font-medium text-gray-700">英��名称</label>
                       <input
                         type="text"
                         value={newProduct.etitle}
@@ -1683,12 +1647,15 @@ function ProductManagement() {
 
         <BatchUploadModal />
 
-        {/* 毛利图预览模态框 */}
-        {previewModalOpen && previewImage && currentProduct && (
+        {/* 添加预览模态框 */}
+        {previewModalOpen && (
           <PreviewModal
             image={previewImage}
-            onClose={() => setPreviewModalOpen(false)}
-            productId={currentProduct.spuId}
+            productId={currentProduct?.spuId || ''} // 添加 productId
+            onClose={() => {
+              setPreviewModalOpen(false);
+              setPreviewImage('');
+            }}
           />
         )}
       </div>
