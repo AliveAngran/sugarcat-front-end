@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  /* 添加更多具体的打印样式 */
+  button.no-print {
+    display: none !important;
+  }
+  
+  select.no-print {
+    display: none !important;
+  }
+  
+  div.no-print {
+    display: none !important;
+  }
+} 
