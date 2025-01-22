@@ -18,6 +18,7 @@ const StoreManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
+  const [searchText, setSearchText] = useState('');
   const [form] = Form.useForm();
 
   // 获取店铺列表
@@ -78,6 +79,18 @@ const StoreManagementPage: React.FC = () => {
     }
   };
 
+  // 过滤数据
+  const filteredStores = stores.filter((store) => {
+    if (!searchText) return true;
+    const searchLower = searchText.toLowerCase();
+    return (
+      store.userStoreName?.toLowerCase().includes(searchLower) ||
+      store.userStoreNameLiankai?.toLowerCase().includes(searchLower) ||
+      store.salesPerson?.toLowerCase().includes(searchLower) ||
+      store.phoneNumber?.includes(searchText)
+    );
+  });
+
   const columns: ColumnsType<Store> = [
     {
       title: '店铺名称',
@@ -119,11 +132,27 @@ const StoreManagementPage: React.FC = () => {
   return (
     <div className="p-6">
       <Card title="店铺管理">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1 max-w-md">
+            <Input.Search
+              placeholder="搜索店铺名称/连凯店铺名称/业务员/电话"
+              allowClear
+              enterButton
+              size="large"
+              onChange={(e) => setSearchText(e.target.value)}
+              onSearch={(value) => setSearchText(value)}
+            />
+          </div>
+        </div>
+        
         <Table
           columns={columns}
-          dataSource={stores}
+          dataSource={filteredStores}
           rowKey="_openid"
           loading={loading}
+          locale={{
+            emptyText: searchText ? '没有找到匹配的搜索结果' : '暂无数据'
+          }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
