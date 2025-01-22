@@ -19,6 +19,7 @@ const StoreManagementPage: React.FC = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
   const [searchText, setSearchText] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
   const [form] = Form.useForm();
 
   // 获取店铺列表
@@ -79,13 +80,25 @@ const StoreManagementPage: React.FC = () => {
     }
   };
 
+  // 处理搜索
+  const handleSearch = (value: string) => {
+    setSearchText(value);
+    setSearchLoading(true);
+    // 模拟搜索延迟
+    setTimeout(() => {
+      setSearchLoading(false);
+    }, 300);
+  };
+
   // 过滤数据
   const filteredStores = stores.filter((store) => {
+    if (!searchText) return true;
     const searchLower = searchText.toLowerCase();
     return (
       store.userStoreName?.toLowerCase().includes(searchLower) ||
       store.userStoreNameLiankai?.toLowerCase().includes(searchLower) ||
-      store.salesPerson?.toLowerCase().includes(searchLower)
+      store.salesPerson?.toLowerCase().includes(searchLower) ||
+      store.phoneNumber?.includes(searchText)
     );
   });
 
@@ -133,9 +146,11 @@ const StoreManagementPage: React.FC = () => {
         title="店铺管理"
         extra={
           <Input.Search
-            placeholder="搜索店铺名称/连凯店铺名称/业务员"
+            placeholder="搜索店铺名称/连凯店铺名称/业务员/电话"
             allowClear
+            loading={searchLoading}
             style={{ width: 300 }}
+            onSearch={handleSearch}
             onChange={(e) => setSearchText(e.target.value)}
           />
         }
@@ -145,6 +160,9 @@ const StoreManagementPage: React.FC = () => {
           dataSource={filteredStores}
           rowKey="_openid"
           loading={loading}
+          locale={{
+            emptyText: searchText ? '没有找到匹配的搜索结果' : '暂无数据'
+          }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
