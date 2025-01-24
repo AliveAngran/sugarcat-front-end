@@ -50,7 +50,6 @@ export async function POST(request: Request) {
 
       // 上传到 COS，传入完整的文件路径
       const { url: imageUrl } = await uploadBufferToCOS(buffer, filePath);
-<<<<<<< HEAD
 
       // 更新数据库
       const productsCollection = db.collection('spu_db');
@@ -58,25 +57,6 @@ export async function POST(request: Request) {
         marginImage: imageUrl,
         updatedAt: new Date()
       });
-=======
-      
-      // 添加调试日志
-      console.log('生成的图片URL:', imageUrl);
-      console.log('正在更新数据库，productId:', productId);
-
-      // 更新数据库
-      const productsCollection = db.collection('spu_db');
-      try {
-        await productsCollection.doc(productId).update({
-          marginImage: imageUrl,
-          updatedAt: new Date()
-        });
-        console.log('数据库更新成功');
-      } catch (dbError) {
-        console.error('数据库更新失败:', dbError);
-        throw dbError;
-      }
->>>>>>> upstream/main
 
       return NextResponse.json({
         success: true,
