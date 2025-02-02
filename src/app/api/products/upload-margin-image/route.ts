@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { uploadBufferToCOS } from '@/utils/cos-server';
 import { db } from '@/utils/cloudbase-server';
 
+// COS配置
+const COS_CONFIG = {
+  bucket: 'tangmao-1327435676',
+  region: 'ap-guangzhou'
+};
+
 export async function POST(request: Request) {
   try {
     const { productId, imageData } = await request.json();
@@ -50,37 +56,30 @@ export async function POST(request: Request) {
 
       // 上传到 COS，传入完整的文件路径
       const { url: imageUrl } = await uploadBufferToCOS(buffer, filePath);
-<<<<<<< HEAD
-
-      // 更新数据库
-      const productsCollection = db.collection('spu_db');
-      await productsCollection.doc(productId).update({
-        marginImage: imageUrl,
-        updatedAt: new Date()
-      });
-=======
+      
+      // 构建完整的URL
+      const fullImageUrl = `https://${COS_CONFIG.bucket}.cos.${COS_CONFIG.region}.myqcloud.com/${filePath}`;
       
       // 添加调试日志
-      console.log('生成的图片URL:', imageUrl);
-      console.log('正在更新数据库，productId:', productId);
+      console.log('生成的图片URL:', fullImageUrl);
 
       // 更新数据库
       const productsCollection = db.collection('spu_db');
       try {
         await productsCollection.doc(productId).update({
-          marginImage: imageUrl,
+          marginImage: fullImageUrl,
           updatedAt: new Date()
         });
+        
         console.log('数据库更新成功');
       } catch (dbError) {
         console.error('数据库更新失败:', dbError);
         throw dbError;
       }
->>>>>>> upstream/main
 
       return NextResponse.json({
         success: true,
-        imageUrl
+        imageUrl: fullImageUrl
       });
 
     } catch (uploadError: any) {
