@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Button, Input, message, Progress, Modal } from 'antd';
+import { Card, Button, Input, message, Progress, Modal, Select } from 'antd';
 import { ReloadOutlined, ClearOutlined, DeleteOutlined } from '@ant-design/icons';
 import styles from './page.module.css';
 import confetti from 'canvas-confetti';
@@ -38,6 +38,7 @@ export default function LuckyDraw() {
   const [newPrizeName, setNewPrizeName] = useState('');
   const [newPrizeCount, setNewPrizeCount] = useState('1');
   const [currentPrize, setCurrentPrize] = useState<Prize | null>(null);
+  const [selectedDays, setSelectedDays] = useState<number | null>(null);
   const animationRef = useRef<number>();
   const namesRef = useRef<string[]>([]);
   const [winners, setWinners] = useState<{name: string, prize: string}[]>([]);
@@ -49,7 +50,7 @@ export default function LuckyDraw() {
   const loadParticipants = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/lucky-draw/participants');
+      const response = await fetch(`/api/lucky-draw/participants?days=${selectedDays}`);
       const data = await response.json();
       if (data.success) {
         setParticipants(data.participants);
@@ -195,6 +196,16 @@ export default function LuckyDraw() {
   };
 
   const handleDrawEnd = (winnerName: string, prize: string) => {
+    try {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    } catch (error) {
+      console.error('Confetti animation error:', error);
+    }
+    
     setCurrentWinner({ name: winnerName, prize });
     setShowWinnerModal(true);
   };
@@ -271,7 +282,7 @@ export default function LuckyDraw() {
       <div className={styles.content}>
         <Card 
           title="参与者名单" 
-          className={styles.card}
+          className={`${styles.card} ${styles.participantsCard}`}
           extra={
             <Button
               type="text"
@@ -285,15 +296,29 @@ export default function LuckyDraw() {
           }
         >
           <div className={styles.inputGroup}>
+            <Select
+              value={selectedDays}
+              onChange={(value) => setSelectedDays(value)}
+              style={{ width: '100%' }}
+              placeholder="请选择抽奖订单区间"
+              options={[
+                { label: '最近3天内下单', value: 3 },
+                { label: '最近5天内下单', value: 5 },
+                { label: '最近7天内下单', value: 7 },
+                { label: '最近14天内下单', value: 14 },
+                { label: '最近30天内下单', value: 30 },
+              ]}
+            />
             <Button 
               type="primary"
               onClick={handleImport}
               disabled={loading || drawing}
               icon={<ReloadOutlined />}
-              style={{ marginRight: '8px' }}
             >
               一键导入
             </Button>
+          </div>
+          <div className={styles.inputGroup}>
             <Input
               value={currentName}
               onChange={e => setCurrentName(e.target.value)}
@@ -319,10 +344,6 @@ export default function LuckyDraw() {
                 <span>总订单数：</span>
                 <span className={styles.statValue}>{stats.totalOrders}单</span>
               </div>
-              {/* <div className={styles.statItem}>
-                <span>总金额：</span>
-                <span className={styles.statValue}>¥{(stats.totalAmount / 100).toFixed(2)}</span>
-              </div> */}
             </div>
           )}
 
@@ -351,7 +372,7 @@ export default function LuckyDraw() {
           </div>
         </Card>
 
-        <Card title="奖品设置" className={styles.card}>
+        <Card title="奖品设置" className={`${styles.card} ${styles.prizesCard}`}>
           <div className={styles.inputGroup}>
             <Input
               value={newPrizeName}
@@ -381,7 +402,7 @@ export default function LuckyDraw() {
           </div>
         </Card>
 
-        <Card title="中奖名单" className={styles.card}>
+        <Card title="中奖名单" className={`${styles.card} ${styles.winnersCard}`}>
           <div className={styles.winnerList}>
             {winners.map((winner, index) => (
               <div key={index} className={styles.winner}>

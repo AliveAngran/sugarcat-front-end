@@ -39,9 +39,30 @@
 
 .content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
+  grid-template-areas: 
+    "participants participants participants"
+    "prizes . winners";
+  grid-template-columns: 1fr 20px 1fr;
+  grid-template-rows: min-content auto;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.participantsCard {
+  grid-area: participants;
+  width: 600px !important;
+  max-width: none !important;
+  justify-self: center;
+}
+
+.prizesCard {
+  grid-area: prizes;
+}
+
+.winnersCard {
+  grid-area: winners;
 }
 
 .card {
@@ -49,16 +70,11 @@
   border-radius: 16px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
   transition: transform 0.3s ease;
+  height: 100%;
 }
 
 .card:hover {
   transform: translateY(-5px);
-}
-
-.inputGroup {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 
 .stats {
@@ -79,8 +95,14 @@
   color: #e74c3c;
 }
 
-.participantList, .prizeList, .winnerList {
-  max-height: 300px;
+.participantList {
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.prizeList, .winnerList {
+  max-height: 180px;
   overflow-y: auto;
   padding-right: 0.5rem;
 }
@@ -413,4 +435,15 @@
 .prize:hover, .winner:hover {
   transform: translateX(5px);
   background: #f0f0f0;
+}
+
+.inputGroup {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.inputGroup > *:first-child {
+  flex: 1;
 } 
