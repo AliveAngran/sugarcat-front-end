@@ -18,7 +18,10 @@ const StoreManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
+<<<<<<< HEAD
+=======
   const [searchText, setSearchText] = useState('');
+>>>>>>> upstream/main
   const [form] = Form.useForm();
 
   // 获取店铺列表
@@ -79,6 +82,8 @@ const StoreManagementPage: React.FC = () => {
     }
   };
 
+<<<<<<< HEAD
+=======
   // 过滤数据
   const filteredStores = stores.filter((store) => {
     if (!searchText) return true;
@@ -91,6 +96,7 @@ const StoreManagementPage: React.FC = () => {
     );
   });
 
+>>>>>>> upstream/main
   const columns: ColumnsType<Store> = [
     {
       title: '店铺名称',
@@ -132,6 +138,13 @@ const StoreManagementPage: React.FC = () => {
   return (
     <div className="p-6">
       <Card title="店铺管理">
+<<<<<<< HEAD
+        <Table
+          columns={columns}
+          dataSource={stores}
+          rowKey="_openid"
+          loading={loading}
+=======
         <div className="flex items-center justify-between mb-4">
           <div className="flex-1 max-w-md">
             <Input.Search
@@ -153,6 +166,7 @@ const StoreManagementPage: React.FC = () => {
           locale={{
             emptyText: searchText ? '没有找到匹配的搜索结果' : '暂无数据'
           }}
+>>>>>>> upstream/main
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
