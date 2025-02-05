@@ -18,17 +18,31 @@ interface User {
   userStoreName: string;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // 获取startDate参数
+    const url = new URL(request.url);
+    const startDate = url.searchParams.get('startDate');
+    
+    // 如果未选择日期，返回空数据
+    if (!startDate) {
+      return NextResponse.json({
+        success: true,
+        participants: [],
+        stats: {
+          totalStores: 0,
+          totalOrders: 0,
+          totalAmount: 0
+        }
+      });
+    }
+
+    const startTimestamp = parseInt(startDate);
+    console.log('API收到的时间戳:', startTimestamp);
+    console.log('对应的日期:', new Date(startTimestamp).toISOString());
+    
     const db = cloudbase.database();
     const _ = db.command;
-    
-    // 计算6天前的时间戳
-    const sixDaysAgo = new Date();
-    sixDaysAgo.setDate(sixDaysAgo.getDate() - 6);
-    sixDaysAgo.setHours(0, 0, 0, 0);
-
-    console.log('查询起始时间:', sixDaysAgo.toISOString());
     
     // 使用分页查询获取订单数据
     let allOrders: any[] = [];
@@ -42,6 +56,7 @@ export async function GET() {
       let query: any = {
         orderStatus: _.in([10, 40, 50]),
         payStatus: 'PAID',
+        createTime: _.gte(new Date(startTimestamp)),
         isDeleted: _.or(_.eq(false), _.exists(false))
       };
 
@@ -67,11 +82,6 @@ export async function GET() {
       
       // 记录最后一条记录的ID
       lastOrderId = currentPageOrders[currentPageOrders.length - 1]._id;
-
-      // 如果当前页数据少于limit，说明已经没有更多数据了
-      // if (currentPageOrders.length < limit) {
-      //   break;
-      // }
     }
 
     console.log('订单查询结果总数量:', allOrders.length);
@@ -88,17 +98,9 @@ export async function GET() {
       });
     }
 
-    // 过滤6天内的订单
-    const filteredOrders = allOrders.filter(order => {
-      const orderDate = new Date(order.createTime);
-      return orderDate >= sixDaysAgo;
-    });
-
-    console.log('过滤后6天内订单数量:', filteredOrders.length);
-
     // 获取所有相关用户的 openid
     const openids = Array.from(new Set(
-      filteredOrders.map(order => order._openid)
+      allOrders.map(order => order._openid)
     ));
 
     console.log('唯一用户数量:', openids.length);
@@ -132,7 +134,7 @@ export async function GET() {
     }>();
 
     // 处理订单数据
-    filteredOrders.forEach(order => {
+    allOrders.forEach(order => {
       const storeName = userMap.get(order._openid) || '未知店家';
       
       if (!storeStats.has(storeName)) {

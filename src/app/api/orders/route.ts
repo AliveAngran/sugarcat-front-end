@@ -12,35 +12,39 @@ const app = cloud.init({
   secretKey: process.env.TCB_SECRET_KEY as string,
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // console.log("[Orders API] Starting to fetch orders");
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const pageSize = parseInt(searchParams.get('pageSize') || '200');
+    const skip = (page - 1) * pageSize;
+
     const db = cloudbase.database();
     const _ = db.command;
     
-    // console.log("[Orders API] Fetching orders from database");
-    // 获取订单数据
+    // 获取总记录数
+    const countResult = await db.collection('orders')
+      .where({})
+      .count();
+    
+    const total = countResult.total || 0;
+    
+    // 获取当前页的订单数据
     const ordersResult = await db.collection('orders')
       .orderBy('createTime', 'desc')
-      .limit(2000)
+      .skip(skip)
+      .limit(pageSize)
       .get();
     
-    // console.log("[Orders API] Orders count:", ordersResult.data.length);
-
     // 获取所有相关用户的 openid
     const openids = Array.from(new Set(ordersResult.data.map((order: any) => order._openid)));
-    // console.log("[Orders API] Unique openids count:", openids.length);
     
-    // console.log("[Orders API] Fetching users information");
     // 批量获取用户信息
     const usersResult = await db.collection('users')
       .where({
         _openid: _.in(openids)
       })
-      .limit(2000)
       .get();
-
-    // console.log("[Orders API] Users found:", usersResult.data.length);
 
     // 创建用户信息映射
     const userMap = new Map(
@@ -86,10 +90,16 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: processedOrders
+      data: processedOrders,
+      pagination: {
+        total,
+        current: page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
+      }
     });
   } catch (error) {
-    // console.error("[Orders API] Error fetching orders:", error);
+    console.error("[Orders API] Error fetching orders:", error);
     return NextResponse.json(
       { error: "Failed to fetch orders" },
       { status: 500 }
