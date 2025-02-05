@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     const openids = Array.from(new Set(ordersResult.data.map((order: any) => order._openid)));
     
     // 分批查询用户数据
-    const BATCH_SIZE = 1000; // 每批次查询的数量
+    const BATCH_SIZE = 100; // 每批次查询的数量
     const userBatches = [];
     
     // 将openids分成多个批次
