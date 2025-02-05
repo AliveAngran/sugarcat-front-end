@@ -39,16 +39,33 @@ export async function GET(request: Request) {
     // 获取所有相关用户的 openid
     const openids = Array.from(new Set(ordersResult.data.map((order: any) => order._openid)));
     
-    // 批量获取用户信息
-    const usersResult = await db.collection('users')
-      .where({
-        _openid: _.in(openids)
-      })
-      .get();
+    // 分批查询用户数据
+    const BATCH_SIZE = 1000; // 每批次查询的数量
+    const userBatches = [];
+    
+    // 将openids分成多个批次
+    for (let i = 0; i < openids.length; i += BATCH_SIZE) {
+      const batchOpenids = openids.slice(i, i + BATCH_SIZE);
+      userBatches.push(
+        db.collection('users')
+          .where({
+            _openid: _.in(batchOpenids)
+          })
+          .get()
+      );
+    }
+
+    // 并发查询所有批次
+    const userResults = await Promise.all(userBatches);
+    
+    // 合并所有批次的结果
+    const allUsers = userResults.reduce((acc: any[], result) => {
+      return [...acc, ...result.data];
+    }, [] as any[]);
 
     // 创建用户信息映射
     const userMap = new Map(
-      usersResult.data.map((user: any) => [
+      allUsers.map((user: any) => [
         user._openid,
         {
           userStoreName: user.userStoreName || "未知店家",
