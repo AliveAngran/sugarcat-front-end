@@ -120,29 +120,68 @@ export async function GET() {
   try {
     const db = cloudbase.database();
     
-    // 获取所有订单
-    const ordersResult = await db.collection('orders')
-      .where({
-        orderStatus: _.in([10, 40, 50]),
-      })
-      .limit(2000)
-      .get();
+    // 分页获取订单数据
+    const PAGE_SIZE = 200;
+    let allOrders: any[] = [];
+    let hasMore = true;
+    let currentPage = 0;
+
+    while (hasMore) {
+      const ordersResult = await db.collection('orders')
+        .where({
+          orderStatus: _.in([10, 40, 50])
+        })
+        .skip(currentPage * PAGE_SIZE)
+        .limit(PAGE_SIZE)
+        .get();
+
+      if (ordersResult.data.length === 0) {
+        hasMore = false;
+      } else {
+        allOrders = allOrders.concat(ordersResult.data);
+        currentPage++;
+      }
+
+      // 安全检查，防止无限循环
+      if (currentPage > 50) { // 最多查询10000条数据
+        break;
+      }
+    }
     
-    // 获取所有商品
+    // 分批获取用户数据
+    const uniqueOpenids = Array.from(new Set(allOrders.map(order => order._openid)));
+    const BATCH_SIZE = 100;
+    const userBatches = [];
+    
+    for (let i = 0; i < uniqueOpenids.length; i += BATCH_SIZE) {
+      const batchOpenids = uniqueOpenids.slice(i, i + BATCH_SIZE);
+      userBatches.push(
+        db.collection('users')
+          .where({
+            _openid: _.in(batchOpenids)
+          })
+          .get()
+      );
+    }
+
+    const userResults = await Promise.all(userBatches);
+    const allUsers = userResults.reduce((acc: any[], result) => {
+      return [...acc, ...result.data];
+    }, [] as any[]);
+
+    // 获取商品数据
     const productsResult = await db.collection('spu_db')
       .where({
         isPutOnSale: 1,
         available: _.gt(0)
       })
-      .limit(2000)
       .get();
     
-    const orders = ordersResult.data || [];
     const products = productsResult.data || [];
     
     // 计算基础数据
-    const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum, order) => sum + (order.paymentAmount || 0), 0);
+    const totalOrders = allOrders.length;
+    const totalRevenue = allOrders.reduce((sum, order) => sum + (order.paymentAmount || 0), 0);
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
     const totalProducts = products.length;
 
@@ -153,7 +192,7 @@ export async function GET() {
       return date.toISOString().split('T')[0];
     }).reverse();
 
-    const ordersByDate = orders.reduce((acc, order) => {
+    const ordersByDate = allOrders.reduce((acc, order) => {
       const date = new Date(order.createTime).toISOString().split('T')[0];
       acc[date] = (acc[date] || 0) + order.paymentAmount;
       return acc;
@@ -169,7 +208,7 @@ export async function GET() {
     }, {});
 
     // 计算热销商品
-    const productSales = orders.reduce((acc, order) => {
+    const productSales = allOrders.reduce((acc, order) => {
       (order.goodsList || []).forEach((item: OrderItem) => {
         const salesAmount = (item.price || 0) * (item.quantity || 0);
         if (!acc[item.goodsName]) {
@@ -200,14 +239,14 @@ export async function GET() {
       .slice(0, 20);
 
     // 算每周最佳销售时段分布
-    const hourlyDistribution = orders.reduce((acc, order) => {
+    const hourlyDistribution = allOrders.reduce((acc, order) => {
       const hour = new Date(order.createTime).getHours();
       acc[hour] = (acc[hour] || 0) + order.paymentAmount;
       return acc;
     }, {} as Record<number, number>);
 
     // 计算商品组合分析
-    const productCombinations = orders.reduce((acc, order) => {
+    const productCombinations = allOrders.reduce((acc, order) => {
       const items = order.goodsList.map((item: OrderItem) => item.goodsName).sort();
       for (let i = 0; i < items.length; i++) {
         for (let j = i + 1; j < items.length; j++) {
@@ -220,7 +259,7 @@ export async function GET() {
 
     // 计算滞销商品分析
     const productSalesInLast30Days = products.map(product => {
-      const sales = orders
+      const sales = allOrders
         .filter(order => new Date(order.createTime).getTime() > thirtyDaysAgoTimestamp)
         .reduce((sum, order) => {
           const item = order.goodsList.find((item: OrderItem) => item.spuId === product.spuId);
@@ -236,7 +275,7 @@ export async function GET() {
     }).sort((a, b) => a.sales - b.sales);
 
     // 计算客户分
-    const customerAnalysis = orders.reduce((acc, order) => {
+    const customerAnalysis = allOrders.reduce((acc, order) => {
       const customerId = order._openid;
       if (!acc[customerId]) {
         acc[customerId] = {
@@ -259,7 +298,7 @@ export async function GET() {
     }, {} as Record<number, number>);
 
     // 计算地域分布
-    const regionDistribution = orders.reduce((acc, order) => {
+    const regionDistribution = allOrders.reduce((acc, order) => {
       const address = order.receiverAddress || '';
       const city = parseAddress(address);
       
@@ -283,7 +322,7 @@ export async function GET() {
       }));
 
     // 计算品牌销售数据
-    const brandSales = orders.reduce((acc, order) => {
+    const brandSales = allOrders.reduce((acc, order) => {
       (order.goodsList || []).forEach((item: OrderItem) => {
         const product = products.find(p => p.spuId === item.spuId);
         if (!product?.brand) return;
@@ -325,7 +364,7 @@ export async function GET() {
       .slice(0, 10);
 
     // 计算品类市场份额趋势（按月）
-    const categoryTrends = orders.reduce((acc, order) => {
+    const categoryTrends = allOrders.reduce((acc, order) => {
       const month = new Date(order.createTime).toISOString().slice(0, 7); // YYYY-MM
       if (!acc[month]) {
         acc[month] = {
@@ -351,7 +390,7 @@ export async function GET() {
     }>);
 
     // 计算品类组合购买分析
-    const categoryCombinations = orders.reduce((acc, order) => {
+    const categoryCombinations = allOrders.reduce((acc, order) => {
       const orderCategories = new Set<string>();
       order.goodsList.forEach((item: OrderItem) => {
         const product = products.find(p => p.spuId === item.spuId);
@@ -371,7 +410,7 @@ export async function GET() {
     }, {} as Record<string, number>);
 
     // 计算新客户增长趋势 (按日)
-    const customerGrowth = orders.reduce((acc, order) => {
+    const customerGrowth = allOrders.reduce((acc, order) => {
       const date = new Date(order.createTime).toISOString().split('T')[0]; // YYYY-MM-DD
       const customerId = order._openid;
       
@@ -427,12 +466,11 @@ export async function GET() {
       }, [] as Array<{ customerPercentage: number; revenuePercentage: number }>);
 
     // 获取所有相关用户的 openid
-    const openids = Array.from(new Set(orders.map(order => order._openid)));
-
+    
     // 批量获取用户信息
     const usersResult = await db.collection('users')
       .where({
-        _openid: _.in(openids)
+        _openid: _.in(uniqueOpenids)
       })
       .limit(2000)
       .get();
@@ -450,7 +488,7 @@ export async function GET() {
     );
 
     // 1. 先计算店家订单统计
-    const storeOrderStats = orders.reduce((acc, order) => {
+    const storeOrderStats = allOrders.reduce((acc, order) => {
       if (order.payStatus === 'PAID' && order.orderStatus !== 80) {
         const userInfo = userMap.get(order._openid);
         const storeName = userInfo?.userStoreName || "未知店家";
@@ -485,7 +523,7 @@ export async function GET() {
     const totalStores = storeStats.length;
 
     // 4. 计算业务员分析
-    const salesmanAnalysis = orders.reduce((acc, order) => {
+    const salesmanAnalysis = allOrders.reduce((acc, order) => {
       const userInfo = userMap.get(order._openid);
       if (!userInfo) return acc;
       
