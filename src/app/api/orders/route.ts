@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       .where({})
       .count();
     
-    const total = countResult.total;
+    const total = countResult.total || 0;
     
     // 获取当前页的订单数据
     const ordersResult = await db.collection('orders')
