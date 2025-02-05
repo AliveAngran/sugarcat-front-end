@@ -20,12 +20,12 @@ interface User {
 
 export async function GET(request: Request) {
   try {
-    // 获取days参数
+    // 获取startDate参数
     const url = new URL(request.url);
-    const days = url.searchParams.get('days');
+    const startDate = url.searchParams.get('startDate');
     
-    // 如果未选择天数，返回空数据
-    if (!days) {
+    // 如果未选择日期，返回空数据
+    if (!startDate) {
       return NextResponse.json({
         success: true,
         participants: [],
@@ -37,17 +37,12 @@ export async function GET(request: Request) {
       });
     }
 
-    const daysNum = parseInt(days);
+    const startTimestamp = parseInt(startDate);
+    console.log('API收到的时间戳:', startTimestamp);
+    console.log('对应的日期:', new Date(startTimestamp).toISOString());
     
     const db = cloudbase.database();
     const _ = db.command;
-    
-    // 计算指定天数前的时间戳
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - daysNum);
-    startDate.setHours(0, 0, 0, 0);
-
-    console.log('查询起始时间:', startDate.toISOString());
     
     // 使用分页查询获取订单数据
     let allOrders: any[] = [];
@@ -61,6 +56,7 @@ export async function GET(request: Request) {
       let query: any = {
         orderStatus: _.in([10, 40, 50]),
         payStatus: 'PAID',
+        createTime: _.gte(new Date(startTimestamp)),
         isDeleted: _.or(_.eq(false), _.exists(false))
       };
 
@@ -102,17 +98,9 @@ export async function GET(request: Request) {
       });
     }
 
-    // 过滤指定天数内的订单
-    const filteredOrders = allOrders.filter(order => {
-      const orderDate = new Date(order.createTime);
-      return orderDate >= startDate;
-    });
-
-    console.log(`过滤后${daysNum}天内订单数量:`, filteredOrders.length);
-
     // 获取所有相关用户的 openid
     const openids = Array.from(new Set(
-      filteredOrders.map(order => order._openid)
+      allOrders.map(order => order._openid)
     ));
 
     console.log('唯一用户数量:', openids.length);
@@ -146,7 +134,7 @@ export async function GET(request: Request) {
     }>();
 
     // 处理订单数据
-    filteredOrders.forEach(order => {
+    allOrders.forEach(order => {
       const storeName = userMap.get(order._openid) || '未知店家';
       
       if (!storeStats.has(storeName)) {

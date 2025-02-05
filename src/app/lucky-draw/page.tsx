@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Button, Input, message, Progress, Modal, Select } from 'antd';
+import { Card, Button, Input, message, Progress, Modal, DatePicker } from 'antd';
 import { ReloadOutlined, ClearOutlined, DeleteOutlined } from '@ant-design/icons';
 import styles from './page.module.css';
 import confetti from 'canvas-confetti';
@@ -38,7 +38,7 @@ export default function LuckyDraw() {
   const [newPrizeName, setNewPrizeName] = useState('');
   const [newPrizeCount, setNewPrizeCount] = useState('1');
   const [currentPrize, setCurrentPrize] = useState<Prize | null>(null);
-  const [selectedDays, setSelectedDays] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const animationRef = useRef<number>();
   const namesRef = useRef<string[]>([]);
   const [winners, setWinners] = useState<{name: string, prize: string}[]>([]);
@@ -48,9 +48,23 @@ export default function LuckyDraw() {
 
   // 加载参与者数据
   const loadParticipants = async () => {
+    if (!selectedDate) {
+      message.warning('请先选择起始日期');
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch(`/api/lucky-draw/participants?days=${selectedDays}`);
+      // 将选择的日期设置为当天的0点
+      const date = new Date(selectedDate);
+      date.setHours(0, 0, 0, 0);
+      // 转换为东八区的时间戳
+      const startDate = date.getTime() - (date.getTimezoneOffset() * 60 * 1000);
+      
+      console.log('选择的日期:', date.toISOString());
+      console.log('转换后的时间戳:', startDate);
+      
+      const response = await fetch(`/api/lucky-draw/participants?startDate=${startDate}`);
       const data = await response.json();
       if (data.success) {
         setParticipants(data.participants);
@@ -190,6 +204,7 @@ export default function LuckyDraw() {
         setNewPrizeName('');
         setNewPrizeCount('1');
         setCurrentPrize(null);
+        setSelectedDate(null);
         message.success('已重置所有数据');
       }
     });
@@ -296,23 +311,16 @@ export default function LuckyDraw() {
           }
         >
           <div className={styles.inputGroup}>
-            <Select
-              value={selectedDays}
-              onChange={(value) => setSelectedDays(value)}
+            <DatePicker
+              placeholder="选择起始日期"
+              onChange={(date) => setSelectedDate(date ? date.toDate() : null)}
               style={{ width: '100%' }}
-              placeholder="请选择抽奖订单区间"
-              options={[
-                { label: '最近3天内下单', value: 3 },
-                { label: '最近5天内下单', value: 5 },
-                { label: '最近7天内下单', value: 7 },
-                { label: '最近14天内下单', value: 14 },
-                { label: '最近30天内下单', value: 30 },
-              ]}
+              disabled={loading || drawing}
             />
             <Button 
               type="primary"
               onClick={handleImport}
-              disabled={loading || drawing}
+              disabled={loading || drawing || !selectedDate}
               icon={<ReloadOutlined />}
             >
               一键导入
