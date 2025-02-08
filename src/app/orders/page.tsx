@@ -132,7 +132,7 @@ function OrderList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
-  const pageSize = 200;
+  const pageSize = 100;
 
   useEffect(() => {
     const auth = checkAuth();

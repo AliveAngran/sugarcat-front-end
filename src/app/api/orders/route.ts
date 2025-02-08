@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '200');
+    const pageSize = parseInt(searchParams.get('pageSize') || '100');
     const skip = (page - 1) * pageSize;
 
     const db = cloudbase.database();
@@ -40,45 +40,107 @@ export async function GET(request: Request) {
     const openids = Array.from(new Set(ordersResult.data.map((order: any) => order._openid)));
     
     // 分批查询用户数据
-    const BATCH_SIZE = 100; // 每批次查询的数量
+    const BATCH_SIZE = 100; // 降低批次大小以提高稳定性
     const userBatches = [];
+    const MAX_RETRIES = 3; // 最大重试次数
     
     // 将openids分成多个批次
     for (let i = 0; i < openids.length; i += BATCH_SIZE) {
       const batchOpenids = openids.slice(i, i + BATCH_SIZE);
-      userBatches.push(
-        db.collection('users')
+      userBatches.push(batchOpenids);
+    }
+
+    // 带重试机制的用户查询函数
+    async function queryUsersWithRetry(batchOpenids: string[], retryCount = 0): Promise<any> {
+      try {
+        const result = await db.collection('users')
           .where({
             _openid: _.in(batchOpenids)
           })
-          .get()
-      );
+          .get();
+        return result;
+      } catch (error) {
+        console.error(`[Orders API] 批次用户查询失败 (第${retryCount + 1}次尝试):`, error);
+        console.error('失败的openids:', batchOpenids);
+        
+        if (retryCount < MAX_RETRIES - 1) {
+          // 等待一段时间后重试
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+          return queryUsersWithRetry(batchOpenids, retryCount + 1);
+        }
+        
+        // 超过最大重试次数，返回空结果
+        console.error(`[Orders API] 批次用户查询在${MAX_RETRIES}次尝试后仍然失败`);
+        return { data: [] };
+      }
     }
 
     // 并发查询所有批次
-    const userResults = await Promise.all(userBatches);
+    const userResults = await Promise.all(
+      userBatches.map(batch => queryUsersWithRetry(batch))
+    );
     
-    // 合并所有批次的结果
+    // 合并所有批次的结果并过滤无效记录
     const allUsers = userResults.reduce((acc: any[], result) => {
-      return [...acc, ...result.data];
+      const validUsers = result.data.filter((user: any) => {
+        const isValid = user && user.userStoreName;
+        if (!isValid) {
+          console.warn('[Orders API] 发现无效用户记录:', {
+            openid: user._openid,
+            rawData: {
+              userStoreName: user.userStoreName,
+              userStoreNameLiankai: user.userStoreNameLiankai,
+              salesPerson: user.salesPerson,
+              phoneNumber: user.phoneNumber
+            }
+          });
+        }
+        return isValid;
+      });
+      return [...acc, ...validUsers];
     }, [] as any[]);
+
+    // 记录查询结果统计
+    console.log(`[Orders API] 用户查询统计:
+      - 总订单数: ${ordersResult.data.length}
+      - 不同openid数: ${openids.length}
+      - 查询到的用户数: ${allUsers.length}
+      - 无效用户数: ${openids.length - allUsers.length}`);
 
     // 创建用户信息映射
     const userMap = new Map(
       allUsers.map((user: any) => [
         user._openid,
         {
-          userStoreName: user.userStoreName || "未知店家",
-          userStoreNameLiankai: user.userStoreNameLiankai || "",
-          salesPerson: user.salesPerson || "未知",
-          phoneNumber: user.phoneNumber || ""
+          userStoreName: user.userStoreName.trim(),
+          userStoreNameLiankai: user.userStoreNameLiankai?.trim() || "",
+          salesPerson: user.salesPerson?.trim() || "未知",
+          phoneNumber: user.phoneNumber?.trim() || ""
         }
       ])
     );
 
+    // 记录未找到用户信息的openid
+    const missingUsers = openids.filter(openid => !userMap.has(openid));
+    if (missingUsers.length > 0) {
+      console.warn('[Orders API] 以下openid未找到对应用户信息:', missingUsers);
+    }
+
     // 处理订单数据
     const processedOrders = ordersResult.data.map((order: any) => {
-      const userInfo = userMap.get(order._openid) || {
+      const userInfo = userMap.get(order._openid);
+      
+      // 记录显示为未知店家的订单信息
+      if (!userInfo || userInfo.userStoreName === "未知店家") {
+        console.warn('[Orders API] 订单显示为未知店家:', {
+          orderId: order._id,
+          openid: order._openid,
+          createTime: order.createTime,
+          userInfo: userInfo || null
+        });
+      }
+      
+      const finalUserInfo = userInfo || {
         userStoreName: "未知店家",
         userStoreNameLiankai: "",
         salesPerson: "未知",
@@ -97,10 +159,10 @@ export async function GET(request: Request) {
 
       return {
         ...order,
-        userStoreName: userInfo.userStoreName,
-        userStoreNameLiankai: userInfo.userStoreNameLiankai,
-        salesPerson: userInfo.salesPerson,
-        userPhoneNumber: userInfo.phoneNumber,
+        userStoreName: finalUserInfo.userStoreName,
+        userStoreNameLiankai: finalUserInfo.userStoreNameLiankai,
+        salesPerson: finalUserInfo.salesPerson,
+        userPhoneNumber: finalUserInfo.phoneNumber,
         goodsList: processedGoodsList
       };
     });
@@ -112,7 +174,7 @@ export async function GET(request: Request) {
         total,
         current: page,
         pageSize,
-        totalPages: Math.ceil(total / pageSize)
+        totalPages: Math.ceil(total / pageSize) + 1
       }
     });
   } catch (error) {
