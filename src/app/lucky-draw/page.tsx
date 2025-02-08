@@ -137,21 +137,33 @@ export default function LuckyDraw() {
     setCurrentPrize(prize);
     setDrawing(true);
     let count = 0;
-    const totalFrames = 50; // 增加动画次数
+    const totalFrames = 50;
+
+    // 过滤掉已中奖的用户
+    const availableParticipants = namesRef.current.filter(
+      name => !winners.some(winner => winner.name === name)
+    );
+
+    if (availableParticipants.length === 0) {
+      message.warning('所有参与者都已中奖');
+      setDrawing(false);
+      return;
+    }
+
     const animate = () => {
-      const randomIndex = Math.floor(Math.random() * namesRef.current.length);
-      setCurrentName(namesRef.current[randomIndex]);
+      const randomIndex = Math.floor(Math.random() * availableParticipants.length);
+      setCurrentName(availableParticipants[randomIndex]);
       count++;
       
       if (count < totalFrames) {
-        const frameDelay = Math.min(count * 2, 50); // 逐渐减速
+        const frameDelay = Math.min(count * 2, 50);
         setTimeout(() => {
           animationRef.current = requestAnimationFrame(animate);
         }, frameDelay);
       } else {
-        // 动画结束，选出最终中奖者
-        const winnerIndex = Math.floor(Math.random() * namesRef.current.length);
-        const winner = namesRef.current[winnerIndex];
+        // 动画结束，从未中奖者中选出最终中奖者
+        const winnerIndex = Math.floor(Math.random() * availableParticipants.length);
+        const winner = availableParticipants[winnerIndex];
         setCurrentName(winner);
         
         // 更新中奖记录
@@ -163,7 +175,7 @@ export default function LuckyDraw() {
         ));
         
         // 从参与者列表中移除中奖者
-        namesRef.current = namesRef.current.filter((_, index) => index !== winnerIndex);
+        namesRef.current = namesRef.current.filter(name => name !== winner);
         setParticipants(prev => prev.filter(p => p.userStoreName !== winner));
         
         // 显示中奖弹窗
@@ -414,7 +426,8 @@ export default function LuckyDraw() {
           <div className={styles.winnerList}>
             {winners.map((winner, index) => (
               <div key={index} className={styles.winner}>
-                {winner.name} - {winner.prize}
+                <span className={styles.winnerName}>{winner.name}</span>
+                <span className={styles.winnerPrize}>{winner.prize}</span>
               </div>
             ))}
           </div>
