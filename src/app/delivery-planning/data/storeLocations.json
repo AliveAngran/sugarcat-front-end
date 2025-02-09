@@ -1,470 +1,759 @@
 {
-  "stores": [],
+  "stores": [
+    {
+      "id": "dsfvjt9pv04m6vy1klh",
+      "name": "小芳超市良熟店",
+      "address": "余杭区世纪大道西良熟新苑989号",
+      "location": {
+        "latitude": 30.393833,
+        "longitude": 120.281751
+      }
+    },
+    {
+      "id": "zkzde4xrowom6vy1kll",
+      "name": "华先森(七贤郡店)",
+      "address": "杭州市余杭区良诸七贤郡矿坑对面",
+      "location": {
+        "latitude": 30.348134,
+        "longitude": 120.002435
+      }
+    },
+    {
+      "id": "putdu4rij3jm6vy1leb",
+      "name": "福记食品",
+      "address": "笕丁路168号大世界商城14幢b1号.",
+      "location": {
+        "latitude": 30.333038,
+        "longitude": 120.222877
+      }
+    },
+    {
+      "id": "a8jeps9tubbm6vy1m68",
+      "name": "茁壮食品f",
+      "address": "笕丁路168号大世界14幢a4号",
+      "location": {
+        "latitude": 30.333038,
+        "longitude": 120.222877
+      }
+    },
+    {
+      "id": "b2rvhq3bk8m6vy1m68",
+      "name": "杭州市拱墅区诸宏程便利店",
+      "address": "杭州市拱墅区新文路33号，天堂e谷106室（园区北门进来正对门面）",
+      "location": {
+        "latitude": 30.336571,
+        "longitude": 120.107511
+      }
+    },
+    {
+      "id": "1476d196i5bm6vy1my3",
+      "name": "汪洋批发商场F",
+      "address": "余杭区乔井路葛家车村1组214号",
+      "location": {
+        "latitude": 30.349956,
+        "longitude": 120.260353
+      }
+    },
+    {
+      "id": "8wpha348h6fm6vy1npz",
+      "name": "苏杭汇新市店",
+      "address": "湖州市德清县环西路66号",
+      "location": {
+        "latitude": 30.026465,
+        "longitude": 120.023838
+      }
+    },
+    {
+      "id": "3kd5gmfzjk9m6vy1nq0",
+      "name": "磐汇",
+      "address": "笕丁路168号7幢b7号.",
+      "location": {
+        "latitude": 30.333221,
+        "longitude": 120.22438
+      }
+    },
+    {
+      "id": "wmdxziyrawbm6vy1nq0",
+      "name": "亿家汇鲜生活超市店",
+      "address": "湖州市德清县君望府亿家汇鲜生活超市",
+      "location": {
+        "latitude": 30.346942,
+        "longitude": 120.206797
+      }
+    },
+    {
+      "id": "6vpen1184pwm6vy1ohy",
+      "name": "小芳君临天下店",
+      "address": "东湖南路380号",
+      "location": {
+        "latitude": 30.405752,
+        "longitude": 120.313227
+      }
+    },
+    {
+      "id": "v62bvcuwgksm6vy1p9u",
+      "name": "鲍玉芳副食品店",
+      "address": "中国浙江省杭州市余杭区石横线",
+      "location": {
+        "latitude": 30.187119,
+        "longitude": 119.857223
+      }
+    },
+    {
+      "id": "ek4cyd1e9em6vy1q1r",
+      "name": "浙江美浓集团食堂超市",
+      "address": "余杭区塘栖星河路春晖小区北门",
+      "location": {
+        "latitude": 30.490074,
+        "longitude": 120.244071
+      }
+    },
+    {
+      "id": "v2w4hmnhchbm6vy1q1s",
+      "name": "互惠超市(和苑店)f",
+      "address": "西湖区三墩甲来路79号",
+      "location": {
+        "latitude": 30.338342,
+        "longitude": 120.067029
+      }
+    },
+    {
+      "id": "gpnlezkynmm6vy1qtp",
+      "name": "杭州聚学林食品贸易有限公司",
+      "address": "杭州市学林街1776号",
+      "location": {
+        "latitude": 30.315001,
+        "longitude": 120.310838
+      }
+    },
+    {
+      "id": "1fgmcl0eusjm6vy1qtp",
+      "name": "久亿商贸（原勇金大世界店）",
+      "address": "中国浙江省杭州市江干区笕丁路",
+      "location": {
+        "latitude": 30.32304,
+        "longitude": 120.493941
+      }
+    },
+    {
+      "id": "zi668mzsdbhm6vy1rll",
+      "name": "扬阳食品批发部f",
+      "address": "江干区杭海路1189号（九堡金海城对面）",
+      "location": {
+        "latitude": 30.308949,
+        "longitude": 120.26685
+      }
+    },
+    {
+      "id": "aw606r3m4wtm6vy1rll",
+      "name": "临平小芳超市人民广场店",
+      "address": "临平镇人民大道638号",
+      "location": {
+        "latitude": 30.412136,
+        "longitude": 120.30556
+      }
+    },
+    {
+      "id": "imj8kwxfham6vy1rll",
+      "name": "左邻右舍超市荆山店",
+      "address": "中国浙江省杭州市余杭区荆山湾路荆山翠谷小区门口",
+      "location": {
+        "latitude": 30.233182,
+        "longitude": 120.0315
+      }
+    },
+    {
+      "id": "zsmj2beuvim6vy1t5b",
+      "name": "崇义路怡佳超市F",
+      "address": "中国浙江省杭州市西湖区崇义路32号",
+      "location": {
+        "latitude": 30.281724,
+        "longitude": 120.062335
+      }
+    },
+    {
+      "id": "2g87uldnun8m6vy1t5b",
+      "name": "勾庄世纪华联f",
+      "address": "杭州余杭区勾庄棕榈路61号",
+      "location": {
+        "latitude": 30.359772,
+        "longitude": 120.086606
+      }
+    },
+    {
+      "id": "rgyn30q42zm6vy1tx7",
+      "name": "云起路建超便利店F",
+      "address": "杭州市西湖区蒋村街道西溪花园.紫菱苑东门旁",
+      "location": {
+        "latitude": 30.283371,
+        "longitude": 120.063169
+      }
+    },
+    {
+      "id": "3odaxz9kdxwm6vy1up3",
+      "name": "小芳北大街店",
+      "address": "临平北大街101-2号",
+      "location": {
+        "latitude": 30.422414,
+        "longitude": 120.302819
+      }
+    },
+    {
+      "id": "c8lueumw8srm6vy1up3",
+      "name": "惠仁家园怡佳超市",
+      "address": "西湖区荡鱼街慧仁家园南区1号",
+      "location": {
+        "latitude": 30.330493,
+        "longitude": 120.077802
+      }
+    },
+    {
+      "id": "xsf70yl8bcm6vy1vgz",
+      "name": "临平新洲路1065号18H便利店F",
+      "address": "中国浙江省杭州市余杭区新洲路",
+      "location": {
+        "latitude": 30.273705,
+        "longitude": 119.978742
+      }
+    },
+    {
+      "id": "ooe6lhutndm6vy1vh0",
+      "name": "W余杭北苑生活超市",
+      "address": "杭州市余杭区五繁慧路西溪北苑114号",
+      "location": {
+        "latitude": 30.29074,
+        "longitude": 120.03696
+      }
+    },
+    {
+      "id": "voczg2je1om6vy1w8v",
+      "name": "3S超市F",
+      "address": "三墩镇清池路汇禾领府西商铺07号",
+      "location": {
+        "latitude": 30.324032,
+        "longitude": 120.069987
+      }
+    },
+    {
+      "id": "0ouq6r450oim6vy1w8v",
+      "name": "每日兴商贸",
+      "address": "浙江华胜钢塑制品有限公司",
+      "location": {
+        "latitude": 30.209787,
+        "longitude": 120.307008
+      }
+    },
+    {
+      "id": "xrym80b4uybm6vy1x0p",
+      "name": "美青超市（原方桓自选）F",
+      "address": "临平天荷路华惠家园门口",
+      "location": {
+        "latitude": 30.445747,
+        "longitude": 120.317886
+      }
+    },
+    {
+      "id": "pordlmczi7cm6vy1x0p",
+      "name": "临平小芳横弄店",
+      "address": "临平区临平街道后横弄41.43号",
+      "location": {
+        "latitude": 30.420679,
+        "longitude": 120.302123
+      }
+    },
+    {
+      "id": "655bbxftli4m6vy1xsm",
+      "name": "临平小芳超市 邱山店",
+      "address": "临平镇邱山大街274号",
+      "location": {
+        "latitude": 30.422498,
+        "longitude": 120.297889
+      }
+    },
+    {
+      "id": "2msfyastwffm6vy1xsm",
+      "name": "轩轩副食西溪店",
+      "address": "杭州市余杭区西溪花城东北区店32-2号",
+      "location": {
+        "latitude": 30.253995,
+        "longitude": 120.035514
+      }
+    },
+    {
+      "id": "jmbme3kx61im6vy1ykh",
+      "name": "小芳藕花洲大街",
+      "address": "临平藕花洲大街185-191号",
+      "location": {
+        "latitude": 30.415317,
+        "longitude": 120.29826
+      }
+    },
+    {
+      "id": "ddt0f9msi5m6vy1ykh",
+      "name": "盐仓好又多",
+      "address": "盐仓镇观澜路5号",
+      "location": {
+        "latitude": 30.243813,
+        "longitude": 120.237113
+      }
+    },
+    {
+      "id": "od56uaypiim6vy1yki",
+      "name": "星桥豪众超市",
+      "address": "杭州市临平区五月花城藕花洲大街西段168-3",
+      "location": {
+        "latitude": 30.40093,
+        "longitude": 120.269689
+      }
+    },
+    {
+      "id": "a5r96lakjmdm6vy1zcc",
+      "name": "绿惠超市1",
+      "address": "中国浙江省杭州市余杭区学成街",
+      "location": {
+        "latitude": 30.273705,
+        "longitude": 119.978742
+      }
+    },
+    {
+      "id": "n5r7z5hikxmm6vy1zcd",
+      "name": "望月商铺杭州华联F",
+      "address": "紫荆花北路37号望月商铺58号杭州华联超市",
+      "location": {
+        "latitude": 30.31807,
+        "longitude": 120.09067
+      }
+    },
+    {
+      "id": "mhd8ysgxn2m6vy1zcd",
+      "name": "麦杆超市",
+      "address": "杭州市西湖区三墩镇苏嘉路中海紫藤苑商铺106",
+      "location": {
+        "latitude": 30.324535,
+        "longitude": 120.068088
+      }
+    },
+    {
+      "id": "d259c1gep9m6vy2048",
+      "name": "梁鲜笙精品生活超市北辰之光店F",
+      "address": "浙江省杭州市余杭区通运街216号",
+      "location": {
+        "latitude": 30.34321,
+        "longitude": 120.124046
+      }
+    },
+    {
+      "id": "fnarooxw22um6vy20w3",
+      "name": "中慧后勤（妇保）",
+      "address": "浙江大学医学院附属妇产科医院湖滨园区-东门",
+      "location": {
+        "latitude": 30.218612,
+        "longitude": 120.257258
+      }
+    },
+    {
+      "id": "pzbowdxwriim6vy20w3",
+      "name": "东海水景城优易品生鲜超市",
+      "address": "杭州市余杭区东海水景城南门",
+      "location": {
+        "latitude": 30.273705,
+        "longitude": 119.978742
+      }
+    },
+    {
+      "id": "roo2vh4pp38m6vy20w3",
+      "name": "勾庄澳芙食品",
+      "address": "勾庄食品市场2号市场79号",
+      "location": {
+        "latitude": 30.374806,
+        "longitude": 120.108341
+      }
+    },
+    {
+      "id": "z2xc5q6qbjm6vy21nz",
+      "name": "小芳星桥银领时代",
+      "address": "杭州市余杭区星桥银领时代公寓23-5",
+      "location": {
+        "latitude": 30.395844,
+        "longitude": 120.261994
+      }
+    },
+    {
+      "id": "bin5s3mh5rwm6vy21nz",
+      "name": "浙大超市玉泉教育店",
+      "address": "浙大路38号浙大玉泉校区内",
+      "location": {
+        "latitude": 30.268259,
+        "longitude": 120.123961
+      }
+    },
+    {
+      "id": "fl1kuju3orm6vy22fu",
+      "name": "浙大教育超市启真名苑店",
+      "address": "保俶路12号浙江大学西溪校区启真名苑10幢商铺1号",
+      "location": {
+        "latitude": 30.273854,
+        "longitude": 120.143066
+      }
+    },
+    {
+      "id": "ia1y1mr9yorm6vy237p",
+      "name": "易嘉利超市(塘栖店)",
+      "address": "杭州市塘栖嘉凯城",
+      "location": {
+        "latitude": 30.474795,
+        "longitude": 120.189635
+      }
+    },
+    {
+      "id": "hj6pnw1davm6vy23zl",
+      "name": "小芳工力大厦店",
+      "address": "杭州市余杭区星桥远展街59号(112-113)",
+      "location": {
+        "latitude": 30.381444,
+        "longitude": 120.261872
+      }
+    },
+    {
+      "id": "zf9yrklt22m6vy23zm",
+      "name": "发到家星桥南路店-糖玩",
+      "address": "临平区星桥南路七彩星商业中心B1",
+      "location": {
+        "latitude": 30.387807,
+        "longitude": 120.26233
+      }
+    },
+    {
+      "id": "o75su1x34km6vy24rh",
+      "name": "发到家星桥南路店",
+      "address": "临平区星桥南路七彩星商业中心B1",
+      "location": {
+        "latitude": 30.387807,
+        "longitude": 120.26233
+      }
+    },
+    {
+      "id": "6r76dexnaxgm6vy24rh",
+      "name": "优家超市F",
+      "address": "通济路金地自在城",
+      "location": {
+        "latitude": 30.334017,
+        "longitude": 120.072449
+      }
+    },
+    {
+      "id": "ofiy9mr8bhpm6vy25jc",
+      "name": "易嘉利超市(瓶窑店)",
+      "address": "杭州余杭瓶窑嘉凯城",
+      "location": {
+        "latitude": 30.381605,
+        "longitude": 119.975707
+      }
+    },
+    {
+      "id": "otc931agfqkm6vy26b9",
+      "name": "小芳超市天都城店",
+      "address": "香榭路33号",
+      "location": {
+        "latitude": 30.387223,
+        "longitude": 120.248528
+      }
+    },
+    {
+      "id": "eqn9b58xyhim6vy26b9",
+      "name": "塘栖如海广济路",
+      "address": "塘栖广济路158号",
+      "location": {
+        "latitude": 30.47131,
+        "longitude": 120.187798
+      }
+    },
+    {
+      "id": "pccnalu553dm6vy2735",
+      "name": "临平小芳塘栖（水岸锦城店）F",
+      "address": "塘栖镇水岸锦城运溪路125号",
+      "location": {
+        "latitude": 30.465468,
+        "longitude": 120.187628
+      }
+    },
+    {
+      "id": "z41y4sbkq1rm6vy27uz",
+      "name": "芳海食品",
+      "address": "下沙湾南菜场内",
+      "location": {
+        "latitude": 30.332364,
+        "longitude": 120.318248
+      }
+    },
+    {
+      "id": "sy6yaxfm8tm6vy28mu",
+      "name": "铭雅苑联合一百F",
+      "address": "中国浙江省杭州市余杭区金昌路",
+      "location": {
+        "latitude": 30.34677,
+        "longitude": 120.128289
+      }
+    },
+    {
+      "id": "ti9qj3dl7bcm6vy29eq",
+      "name": "统E省（莫家桥）F",
+      "address": "杭州市余杭区莫家桥村",
+      "location": {
+        "latitude": 30.273705,
+        "longitude": 119.978742
+      }
+    },
+    {
+      "id": "ey2x0qud0i9m6vy29eq",
+      "name": "星桥嘉润批发",
+      "address": "临平东港路183号",
+      "location": {
+        "latitude": 30.397238,
+        "longitude": 120.257181
+      }
+    },
+    {
+      "id": "v8crynj6g5jm6vy2a6m",
+      "name": "上海如海莫家桥",
+      "address": "莫家桥村委旁",
+      "location": {
+        "latitude": 30.444757,
+        "longitude": 120.163183
+      }
+    },
+    {
+      "id": "r0jh63d65fm6vy2a6m",
+      "name": "禹越好搭档（多购乐便利店）",
+      "address": "禹越商益西街菜场西门木桥路36号",
+      "location": {
+        "latitude": 30.151818,
+        "longitude": 120.359236
+      }
+    },
+    {
+      "id": "d46iu15jvapm6vy2ci6",
+      "name": "星桥华先森社群折扣超市(枉山嘉苑店)",
+      "address": "临平区星桥街道枉山嘉园二区二幢2-1",
+      "location": {
+        "latitude": 30.399,
+        "longitude": 120.25863
+      }
+    },
+    {
+      "id": "grqw8jqx5h4m6vy2ci6",
+      "name": "杭州大红鹰超市有限公司",
+      "address": "临平北大街160号",
+      "location": {
+        "latitude": 30.423529,
+        "longitude": 120.302498
+      }
+    },
+    {
+      "id": "omo1ddcc5em6vy2ci6",
+      "name": "新桥购物（原华联购物园里抖48号）",
+      "address": "杭州市余杭区仁和镇新桥村园里斗同人木业旁边的华联购物园里抖48号",
+      "location": {
+        "latitude": 30.457566,
+        "longitude": 120.142679
+      }
+    },
+    {
+      "id": "8u87qricgrim6vy2da2",
+      "name": "小芳超市(塘栖人民路)F",
+      "address": "杭州市余杭区塘栖镇人民路155号",
+      "location": {
+        "latitude": 30.273705,
+        "longitude": 119.978742
+      }
+    },
+    {
+      "id": "2lhpjlh2zhtm6vy2da2",
+      "name": "小芳超市C龙洞店",
+      "address": "临平区龙洞江南食品市场西侧",
+      "location": {
+        "latitude": 30.413431,
+        "longitude": 120.223312
+      }
+    },
+    {
+      "id": "4bl330gazaqm6vy2e1w",
+      "name": "小芳塘栖里仁路店F",
+      "address": "塘栖里仁路1号",
+      "location": {
+        "latitude": 30.481495,
+        "longitude": 120.190905
+      }
+    },
+    {
+      "id": "y4uv95z150em6vy2e1w",
+      "name": "临平绿惠超市F",
+      "address": "杭州市余杭区临平兴国路195号",
+      "location": {
+        "latitude": 30.426315,
+        "longitude": 120.261794
+      }
+    },
+    {
+      "id": "bkcq5731vqpm6vy2ets",
+      "name": "才法副食",
+      "address": "雷甸一新大街308号",
+      "location": {
+        "latitude": 30.457287,
+        "longitude": 120.127168
+      }
+    },
+    {
+      "id": "yz4q0netxigm6vy2fln",
+      "name": "盛汇时代精品超市",
+      "address": "湖州市德清县白云南路1188号洋华运河城市生活广场",
+      "location": {
+        "latitude": 30.182851,
+        "longitude": 120.250968
+      }
+    },
+    {
+      "id": "ngtkcsi82zmm6vy2gdi",
+      "name": "雷甸盛汇时代(孔雀城店)",
+      "address": "湖州德清雷甸镇孔雀城",
+      "location": {
+        "latitude": 30.457287,
+        "longitude": 120.127168
+      }
+    },
+    {
+      "id": "03rmfc8ori69m6vy2ip3",
+      "name": "黄湖红云批发部f",
+      "address": "黄湖通达路32号",
+      "location": {
+        "latitude": 30.449208,
+        "longitude": 119.811704
+      }
+    },
+    {
+      "id": "79e5gudj47sm6vy2jgz",
+      "name": "颂购便利店F",
+      "address": "杭州市临平区蒋家浜路318号A幢",
+      "location": {
+        "latitude": 30.375148,
+        "longitude": 120.14122
+      }
+    },
+    {
+      "id": "pz5sv8s6vjm6vy2k8v",
+      "name": "红星二锅头好又多超市（原好又多崇福山居69号F）",
+      "address": "杭州市余杭区良渚镇良渚街道崇福山居东区八排69号",
+      "location": {
+        "latitude": 30.352183,
+        "longitude": 120.021675
+      }
+    }
+  ],
   "unlocatedStores": [
     {
-      "id": "zaentcr49cm6rj3vqa",
-      "name": "小芳超市良熟店",
-      "address": "余杭区世纪大道西良熟新苑989号"
-    },
-    {
-      "id": "nc2peod27qm6rj3vqe",
-      "name": "华先森(七贤郡店)",
-      "address": "杭州市余杭区良诸七贤郡矿坑对面"
-    },
-    {
-      "id": "dcp31sdxcp5m6rj3vqf",
+      "id": "e45ozhdnrxtm6vy1klm",
       "name": "小芳超市闵家桥店",
       "address": "嘉兴海宁市南大街闵家桥锦苑9幢2号"
     },
     {
-      "id": "lsdc7oaeulam6rj3wkw",
-      "name": "福记食品",
-      "address": "笕丁路168号大世界商城14幢b1号."
-    },
-    {
-      "id": "gnaixx11d4m6rj3wkx",
+      "id": "xu21w97lujm6vy1leb",
       "name": "九千客（德清店）",
       "address": "中国浙江省湖州市德清县保利原乡千秋东街1999号"
     },
     {
-      "id": "p6jhsin73im6rj3xd9",
-      "name": "茁壮食品f",
-      "address": "笕丁路168号大世界14幢a4号"
-    },
-    {
-      "id": "ll0v2im83bjm6rj3xd9",
-      "name": "杭州市拱墅区诸宏程便利店",
-      "address": "杭州市拱墅区新文路33号，天堂e谷106室（园区北门进来正对门面）"
-    },
-    {
-      "id": "j0v8tqpakxm6rj3y5e",
-      "name": "汪洋批发商场F",
-      "address": "余杭区乔井路葛家车村1组214号"
-    },
-    {
-      "id": "s5be5sc24mm6rj3yxl",
-      "name": "苏杭汇新市店",
-      "address": "湖州市德清县环西路66号"
-    },
-    {
-      "id": "fmv0kqg10ukm6rj3yxm",
-      "name": "磐汇",
-      "address": "笕丁路168号7幢b7号."
-    },
-    {
-      "id": "k14awvmcm8fm6rj3yxn",
-      "name": "亿家汇鲜生活超市店",
-      "address": "湖州市德清县君望府亿家汇鲜生活超市"
-    },
-    {
-      "id": "x1xzs7amdonm6rj3zpr",
-      "name": "小芳君临天下店",
-      "address": "东湖南路380号"
-    },
-    {
-      "id": "u69258ia6odm6rj40hw",
+      "id": "urqa7lx6rclm6vy1p9u",
       "name": "禹越小康百货商行F",
       "address": "浙江省湖州市德清县禹越镇新兴街81-83号正南方向90米"
     },
     {
-      "id": "3pb2ov234j5m6rj40hx",
+      "id": "km4a2jfdaom6vy1p9u",
       "name": "武康下柏根平超市",
       "address": "湖州市德清县武康镇下柏街放心超市"
     },
     {
-      "id": "n5bwzgql9rm6rj40hx",
-      "name": "鲍玉芳副食品店",
-      "address": "中国浙江省杭州市余杭区石横线"
-    },
-    {
-      "id": "mgr5ekko59m6rj41a2",
-      "name": "浙江美浓集团食堂超市",
-      "address": "余杭区塘栖星河路春晖小区北门"
-    },
-    {
-      "id": "pb3a9w2j8nm6rj41a3",
+      "id": "em2rcrdxfm6vy1q1r",
       "name": "征球.大世界",
       "address": "8幢a9.b9大世界商城8幢A9号"
     },
     {
-      "id": "cwfxs65gj15m6rj41a3",
-      "name": "互惠超市(和苑店)f",
-      "address": "西湖区三墩甲来路79号"
-    },
-    {
-      "id": "7afakcqcyu8m6rj4228",
-      "name": "杭州聚学林食品贸易有限公司",
-      "address": "杭州市学林街1776号"
-    },
-    {
-      "id": "ciom7ruq1lm6rj4229",
-      "name": "久亿商贸（原勇金大世界店）",
-      "address": "中国浙江省杭州市江干区笕丁路"
-    },
-    {
-      "id": "ty5b3v2vq2sm6rj42u7",
-      "name": "扬阳食品批发部f",
-      "address": "江干区杭海路1189号（九堡金海城对面）"
-    },
-    {
-      "id": "2bnxm9a9hjlm6rj42u8",
-      "name": "临平小芳超市人民广场店",
-      "address": "临平镇人民大道638号"
-    },
-    {
-      "id": "7jjz4mf0phsm6rj42u8",
-      "name": "左邻右舍超市荆山店",
-      "address": "中国浙江省杭州市余杭区荆山湾路荆山翠谷小区门口"
-    },
-    {
-      "id": "7mnrak8w4um6rj44eq",
-      "name": "崇义路怡佳超市F",
-      "address": "中国浙江省杭州市西湖区崇义路32号"
-    },
-    {
-      "id": "flnxaazwgcwm6rj44eq",
-      "name": "勾庄世纪华联f",
-      "address": "杭州余杭区勾庄棕榈路61号"
-    },
-    {
-      "id": "oo6i2lt77bm6rj456t",
+      "id": "rxrhl2q3irm6vy1tx6",
       "name": "德清世纪联华",
       "address": "湖州市德清县下诸湖四都村"
     },
     {
-      "id": "tz87ydjhy9m6rj456t",
+      "id": "grjvr6uj1mm6vy1tx7",
       "name": "德清禹越欧润",
       "address": "湖州市德清县禹越镇振兴路越盛花园"
     },
     {
-      "id": "s25jbh5rohm6rj456t",
-      "name": "云起路建超便利店F",
-      "address": "杭州市西湖区蒋村街道西溪花园.紫菱苑东门旁"
-    },
-    {
-      "id": "j1o2dm4iwfm6rj45z0",
+      "id": "m9zz4ywop2jm6vy1up3",
       "name": "海港周王庙二店",
       "address": "海宁市周王庙镇诚信路18号"
     },
     {
-      "id": "o5j0zxurlslm6rj45z1",
-      "name": "小芳北大街店",
-      "address": "临平北大街101-2号"
-    },
-    {
-      "id": "hg5ugrp8hnom6rj45z1",
-      "name": "惠仁家园怡佳超市",
-      "address": "西湖区荡鱼街慧仁家园南区1号"
-    },
-    {
-      "id": "nshwnyw0iubm6rj46r5",
-      "name": "临平新洲路1065号18H便利店F",
-      "address": "中国浙江省杭州市余杭区新洲路"
-    },
-    {
-      "id": "ivpy8dc5tim6rj46r5",
-      "name": "W余杭北苑生活超市",
-      "address": "杭州市余杭区五繁慧路西溪北苑114号"
-    },
-    {
-      "id": "v518fq33zfm6rj47jb",
-      "name": "3S超市F",
-      "address": "三墩镇清池路汇禾领府西商铺07号"
-    },
-    {
-      "id": "gf9hi5dp9qmm6rj47jb",
-      "name": "每日兴商贸",
-      "address": "浙江华胜钢塑制品有限公司"
-    },
-    {
-      "id": "f9jimvjmqo5m6rj48bh",
-      "name": "美青超市（原方桓自选）F",
-      "address": "临平天荷路华惠家园门口"
-    },
-    {
-      "id": "hgr6jpomfagm6rj48bh",
-      "name": "临平小芳横弄店",
-      "address": "临平区临平街道后横弄41.43号"
-    },
-    {
-      "id": "3h4qbbhi3pvm6rj48bi",
+      "id": "rg96gqegj3m6vy1x0p",
       "name": "海港钱塘江店",
       "address": "海宁市周王庙镇石井万花街42号"
     },
     {
-      "id": "maunjnvysvom6rj493m",
-      "name": "临平小芳超市 邱山店",
-      "address": "临平镇邱山大街274号"
-    },
-    {
-      "id": "jcjsdmt9wmm6rj493n",
-      "name": "轩轩副食西溪店",
-      "address": "杭州市余杭区西溪花城东北区店32-2号"
-    },
-    {
-      "id": "8oh76vjmmuhm6rj49vi",
-      "name": "小芳藕花洲大街",
-      "address": "临平藕花洲大街185-191号"
-    },
-    {
-      "id": "8sl7obvfua4m6rj49vi",
-      "name": "盐仓好又多",
-      "address": "盐仓镇观澜路5号"
-    },
-    {
-      "id": "5e723a3ob5gm6rj49vj",
-      "name": "星桥豪众超市",
-      "address": "杭州市临平区五月花城藕花洲大街西段168-3"
-    },
-    {
-      "id": "lqjx6k7itcom6rj4anq",
-      "name": "绿惠超市1",
-      "address": "中国浙江省杭州市余杭区学成街"
-    },
-    {
-      "id": "mukbl8gvdum6rj4anq",
-      "name": "望月商铺杭州华联F",
-      "address": "紫荆花北路37号望月商铺58号杭州华联超市"
-    },
-    {
-      "id": "35yp0qc5eamm6rj4anq",
-      "name": "麦杆超市",
-      "address": "杭州市西湖区三墩镇苏嘉路中海紫藤苑商铺106"
-    },
-    {
-      "id": "5b8l933tqcm6rj4bfu",
+      "id": "adj5ahzo3yrm6vy2048",
       "name": "园区服务中心便利店（原微海二店）",
       "address": "湖州市德清县乾元镇乾龙中路16号"
     },
     {
-      "id": "gpn43aqlgqkm6rj4bfv",
-      "name": "梁鲜笙精品生活超市北辰之光店F",
-      "address": "浙江省杭州市余杭区通运街216号"
-    },
-    {
-      "id": "3z827skh50lm6rj4c83",
-      "name": "中慧后勤（妇保）",
-      "address": "浙江大学医学院附属妇产科医院湖滨园区-东门"
-    },
-    {
-      "id": "pe3abresofm6rj4c84",
-      "name": "东海水景城优易品生鲜超市",
-      "address": "杭州市余杭区东海水景城南门"
-    },
-    {
-      "id": "9tqan5efbvsm6rj4c85",
-      "name": "勾庄澳芙食品",
-      "address": "勾庄食品市场2号市场79号"
-    },
-    {
-      "id": "6mfnwfqi7fdm6rj4d0h",
-      "name": "小芳星桥银领时代",
-      "address": "杭州市余杭区星桥银领时代公寓23-5"
-    },
-    {
-      "id": "cd8yvpxqqkvm6rj4d0h",
-      "name": "浙大超市玉泉教育店",
-      "address": "浙大路38号浙大玉泉校区内"
-    },
-    {
-      "id": "dzp4w3fixr6m6rj4dsg",
-      "name": "浙大教育超市启真名苑店",
-      "address": "保俶路12号浙江大学西溪校区启真名苑10幢商铺1号"
-    },
-    {
-      "id": "9n5gxgkvq6m6rj4ekf",
-      "name": "易嘉利超市(塘栖店)",
-      "address": "杭州市塘栖嘉凯城"
-    },
-    {
-      "id": "vxklbdgmg9m6rj4ekg",
+      "id": "t3lrjfi2lm6vy237p",
       "name": "海港沈士店",
       "address": "海宁市许村镇沈士街文胜路20号"
     },
     {
-      "id": "x6e6jeujh2m6rj4fcd",
-      "name": "小芳工力大厦店",
-      "address": "杭州市余杭区星桥远展街59号(112-113)"
-    },
-    {
-      "id": "i1jzzat97f9m6rj4fce",
-      "name": "发到家星桥南路店-糖玩",
-      "address": "临平区星桥南路七彩星商业中心B1"
-    },
-    {
-      "id": "w010uxcs8am6rj4g4h",
-      "name": "发到家星桥南路店",
-      "address": "临平区星桥南路七彩星商业中心B1"
-    },
-    {
-      "id": "mmhbpav21pm6rj4g4i",
-      "name": "优家超市F",
-      "address": "通济路金地自在城"
-    },
-    {
-      "id": "xw3ezitt7sm6rj4gwl",
-      "name": "易嘉利超市(瓶窑店)",
-      "address": "杭州余杭瓶窑嘉凯城"
-    },
-    {
-      "id": "ihidcycjdhgm6rj4gwm",
+      "id": "5jg735haos3m6vy25jd",
       "name": "德清龙栖庭院便利店",
       "address": "中国浙江省湖州市德清县龙门街26号"
     },
     {
-      "id": "d4yrl15pul4m6rj4gwm",
+      "id": "fotslqf4fwsm6vy25jd",
       "name": "德清启龙食品商行",
       "address": "湖州市德清县跨塘街172号"
     },
     {
-      "id": "wlv2unl3qym6rj4hoz",
-      "name": "小芳超市天都城店",
-      "address": "香榭路33号"
-    },
-    {
-      "id": "3py5f984f2bm6rj4hoz",
-      "name": "塘栖如海广济路",
-      "address": "塘栖广济路158号"
-    },
-    {
-      "id": "l31el94fh1bm6rj4ih9",
-      "name": "临平小芳塘栖（水岸锦城店）F",
-      "address": "塘栖镇水岸锦城运溪路125号"
-    },
-    {
-      "id": "08z312cv2ch7m6rj4j9c",
-      "name": "芳海食品",
-      "address": "下沙湾南菜场内"
-    },
-    {
-      "id": "knexvjnv10km6rj4k1k",
-      "name": "铭雅苑联合一百F",
-      "address": "中国浙江省杭州市余杭区金昌路"
-    },
-    {
-      "id": "hzaaxwcn5om6rj4ktr",
-      "name": "统E省（莫家桥）F",
-      "address": "杭州市余杭区莫家桥村"
-    },
-    {
-      "id": "63mmsj2ccijm6rj4ktr",
-      "name": "星桥嘉润批发",
-      "address": "临平东港路183号"
-    },
-    {
-      "id": "g8mrszdz1em6rj4llx",
+      "id": "z7o2mzzrpvm6vy2a6l",
       "name": "海港许村一店",
       "address": "海宁市许村镇勤俭路1号"
     },
     {
-      "id": "ujuzsrk0chm6rj4llx",
-      "name": "上海如海莫家桥",
-      "address": "莫家桥村委旁"
-    },
-    {
-      "id": "k223vr6i2rcm6rj4llx",
-      "name": "禹越好搭档（多购乐便利店）",
-      "address": "禹越商益西街菜场西门木桥路36号"
-    },
-    {
-      "id": "p2boxlmomakm6rj4me2",
+      "id": "ptsynjuxv2im6vy2ayh",
       "name": "新世纪华联生鲜超市",
       "address": "湖州市德清县西郊路152号"
     },
     {
-      "id": "si9qbjowbfjm6rj4nxz",
-      "name": "星桥华先森社群折扣超市(枉山嘉苑店)",
-      "address": "临平区星桥街道枉山嘉园二区二幢2-1"
-    },
-    {
-      "id": "9txpt21t71m6rj4nxz",
-      "name": "杭州大红鹰超市有限公司",
-      "address": "临平北大街160号"
-    },
-    {
-      "id": "6l1pfax25r3m6rj4ny0",
-      "name": "新桥购物（原华联购物园里抖48号）",
-      "address": "杭州市余杭区仁和镇新桥村园里斗同人木业旁边的华联购物园里抖48号"
-    },
-    {
-      "id": "pfla4c4w2gm6rj4oq5",
-      "name": "小芳超市(塘栖人民路)F",
-      "address": "杭州市余杭区塘栖镇人民路155号"
-    },
-    {
-      "id": "pwork9uwihm6rj4oq6",
+      "id": "935akakp0g8m6vy2da2",
       "name": "海港家纺城店",
       "address": "海宁市许村镇七号桥市场路9号"
     },
     {
-      "id": "go8x3ey58amm6rj4oq6",
-      "name": "小芳超市C龙洞店",
-      "address": "临平区龙洞江南食品市场西侧"
-    },
-    {
-      "id": "ezm8i3ljrrvm6rj4pi7",
-      "name": "小芳塘栖里仁路店F",
-      "address": "塘栖里仁路1号"
-    },
-    {
-      "id": "ssxc9mphzhsm6rj4pi8",
-      "name": "临平绿惠超市F",
-      "address": "杭州市余杭区临平兴国路195号"
-    },
-    {
-      "id": "rmnfdw9o9xim6rj4qa7",
-      "name": "才法副食",
-      "address": "雷甸一新大街308号"
-    },
-    {
-      "id": "9qbzr39xgwnm6rj4qa7",
+      "id": "f71xlqg9uukm6vy2ets",
       "name": "德清县振兴路西港生活超市",
       "address": "浙江省湖州市德清县振兴路633"
     },
     {
-      "id": "0rixje0sj5glm6rj4r29",
+      "id": "3lkomtepd6zm6vy2fln",
       "name": "嘉兴万悦贸易商行",
       "address": "海宁市许村镇前进村连树组村委大楼202室"
     },
     {
-      "id": "y8n1q3sqhrfm6rj4r2a",
-      "name": "盛汇时代精品超市",
-      "address": "湖州市德清县白云南路1188号洋华运河城市生活广场"
-    },
-    {
-      "id": "tnkiq589j2sm6rj4rue",
-      "name": "雷甸盛汇时代(孔雀城店)",
-      "address": "湖州德清雷甸镇孔雀城"
-    },
-    {
-      "id": "w8gpmxqnf4m6rj4teo",
+      "id": "8t08uq4xvqtm6vy2hx6",
       "name": "海港郭三店",
       "address": "海宁市盐官镇郭店建设路164号"
     },
     {
-      "id": "tdbmhz7zi3m6rj4u6x",
-      "name": "黄湖红云批发部f",
-      "address": "黄湖通达路32号"
-    },
-    {
-      "id": "b5rhrju8v0vm6rj4uyy",
+      "id": "uonxp4wdc5bm6vy2jgz",
       "name": "德清雅颂府便利店",
       "address": "湖州市德清县雷甸镇孔雀城京杭上宸雅颂府东门旁"
     },
     {
-      "id": "t0z1xjjsvtsm6rj4uyy",
-      "name": "颂购便利店F",
-      "address": "杭州市临平区蒋家浜路318号A幢"
-    },
-    {
-      "id": "6qf7hq3ooc3m6rj4uyz",
+      "id": "4gysa4qlyaem6vy2jgz",
       "name": "德清利民便利店",
       "address": "湖州市德清县湖山路"
-    },
-    {
-      "id": "09fmyrn36y2hm6rj4vr5",
-      "name": "红星二锅头好又多超市（原好又多崇福山居69号F）",
-      "address": "杭州市余杭区良渚镇良渚街道崇福山居东区八排69号"
     }
   ]
 }
