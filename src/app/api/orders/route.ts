@@ -163,7 +163,8 @@ export async function GET(request: Request) {
         userStoreNameLiankai: finalUserInfo.userStoreNameLiankai,
         salesPerson: finalUserInfo.salesPerson,
         userPhoneNumber: finalUserInfo.phoneNumber,
-        goodsList: processedGoodsList
+        goodsList: processedGoodsList,
+        totalSalePrice: order.totalSalePrice
       };
     });
 

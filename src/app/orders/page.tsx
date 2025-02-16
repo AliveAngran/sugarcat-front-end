@@ -101,7 +101,8 @@ type OrderType = {
   _openid: string;
   salesPerson?: string;
   isExported?: boolean;
-  originalAmount?: number;
+  total?: number;
+  totalSalePrice?: number;
 };
 
 // 在文件顶部添加常量定义
@@ -702,7 +703,9 @@ function OrderList() {
           配送业务员: order.salesPerson || "",
           "销售/退货": "销售",
           日期: dateToExcelSerial(order.createTime), // 使用Excel日期序列值
-          备注: `小程序（满减${formatMoney(order.goodsList.reduce((total, goods) => total + goods.price * goods.quantity, 0) - order.paymentAmount)}元）`,
+          备注: order.totalSalePrice 
+            ? `小程序（满减${formatMoney(order.totalSalePrice - order.paymentAmount)}元）`
+            : "小程序",
           操作人: "",
           产品名称: spuTitleMap.get(goods.spuId) || goods.goodsName,
           商品编码: goods.spuId,
@@ -1023,7 +1026,7 @@ function OrderList() {
                     : "text-rose-600"
                 }`}>
                   <div className="text-sm text-gray-500">原金额</div>
-                  ¥{formatMoney(order.goodsList.reduce((total, goods) => total + goods.price * goods.quantity, 0))}
+                  ¥{formatMoney(order.totalSalePrice || order.goodsList.reduce((total, goods) => total + goods.price * goods.quantity, 0))}
                 </div>
                 <div className={`text-lg font-medium ${
                   order.payStatus === "UNPAID"
@@ -1033,7 +1036,9 @@ function OrderList() {
                     : "text-green-600"
                 }`}>
                   <div className="text-sm text-gray-500">满减金额</div>
-                  ¥{formatMoney(order.goodsList.reduce((total, goods) => total + goods.price * goods.quantity, 0) - order.paymentAmount)}
+                  ¥{formatMoney(order.totalSalePrice 
+                    ? order.totalSalePrice - order.paymentAmount 
+                    : order.goodsList.reduce((total, goods) => total + goods.price * goods.quantity, 0) - order.paymentAmount)}
                 </div>
                 <div className={`text-lg font-medium ${
                   order.payStatus === "UNPAID"
