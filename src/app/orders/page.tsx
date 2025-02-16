@@ -684,7 +684,7 @@ function OrderList() {
 
       // Create a mapping of spuId to title from spudb
       const spuTitleMap = new Map(
-        spudb.map((item) => [item.spuId, item.title])
+        spudb.map((item: any) => [item.spuId, item.title])
       );
 
       // 获取要导出的订单
@@ -695,12 +695,12 @@ function OrderList() {
       // 转换数据为Excel格式
       const excelData = ordersToExport.flatMap((order) =>
         order.goodsList.map((goods) => ({
-          单号: order.orderNo,
-          仓库: "1-浙江唐茂科技有限公司",
-          客户编码: order._openid,
-          客户: order.userStoreNameLiankai || order.userStoreName || "未知店家",
-          业务员: order.salesPerson || "",
-          配送业务员: order.salesPerson || "",
+          "单号": order.orderNo,
+          "仓库": "1-浙江唐茂科技有限公司",
+          "客户编码": order._openid,
+          "客户": order.userStoreNameLiankai || order.userStoreName || "未知店家",
+          "业务员": order.salesPerson || "",
+          "配送业务员": order.salesPerson || "",
           "销售/退货": "销售",
           日期: dateToExcelSerial(order.createTime), // 使用Excel日期序列值
           备注: order.totalSalePrice 
@@ -725,7 +725,10 @@ function OrderList() {
       XLSX.utils.book_append_sheet(wb, ws, "销售明细");
 
       // 导出文件
-      XLSX.writeFile(wb, `销售明细_${new Date().toLocaleDateString()}.xlsx`);
+      const currentDate = new Date();
+      const formattedDate = currentDate.toLocaleDateString().replace(/\//g, '-');
+      const fileName = "销售明细_" + formattedDate + ".xlsx";
+      XLSX.writeFile(wb, fileName);
 
       // 更新导出状态
       const exportedOrderIds = selectedOnly
