@@ -6,6 +6,7 @@ import { ReloadOutlined, ClearOutlined, DeleteOutlined } from '@ant-design/icons
 import styles from './page.module.css';
 import confetti from 'canvas-confetti';
 import WinnerModal from './WinnerModal';
+import NavBar from '@/components/NavBar';
 
 interface Participant {
   userStoreName: string;
@@ -297,173 +298,178 @@ export default function LuckyDraw() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <img src="/cookie-icon.svg" alt="cookie" className={styles.icon} />
-        <h1 className={styles.title}>糖猫仓储抽奖</h1>
-        <img src="/cookie-icon.svg" alt="cookie" className={styles.icon} />
-      </div>
-      
-      <h2 className={styles.subtitle}>甜蜜好运，幸运降临！</h2>
-
-      <div className={styles.content}>
-        <Card 
-          title="参与者名单" 
-          className={`${styles.card} ${styles.participantsCard}`}
-          extra={
-            <Button
-              type="text"
-              icon={<ClearOutlined />}
-              onClick={handleReset}
-              disabled={loading || drawing}
-              danger
-            >
-              重置
-            </Button>
-          }
-        >
-          <div className={styles.inputGroup}>
-            <DatePicker
-              placeholder="选择起始日期"
-              onChange={(date) => setSelectedDate(date ? date.toDate() : null)}
-              style={{ width: '100%' }}
-              disabled={loading || drawing}
-            />
-            <Button 
-              type="primary"
-              onClick={handleImport}
-              disabled={loading || drawing || !selectedDate}
-              icon={<ReloadOutlined />}
-            >
-              一键导入
-            </Button>
-          </div>
-          <div className={styles.inputGroup}>
-            <Input
-              value={currentName}
-              onChange={e => setCurrentName(e.target.value)}
-              placeholder="输入参与者姓名"
-              disabled={loading || drawing}
-            />
-            <Button 
-              type="primary"
-              onClick={handleAddParticipant}
-              disabled={loading || drawing}
-            >
-              添加
-            </Button>
+    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-red-50">
+      <NavBar />
+      <div className="pt-6">
+        <div className={styles.container}>
+          <div className={styles.header}>
+            <img src="/cookie-icon.svg" alt="cookie" className={styles.icon} />
+            <h1 className={styles.title}>糖猫仓储抽奖</h1>
+            <img src="/cookie-icon.svg" alt="cookie" className={styles.icon} />
           </div>
           
-          {stats && (
-            <div className={styles.stats}>
-              <div className={styles.statItem}>
-                <span>参与店铺：</span>
-                <span className={styles.statValue}>{stats.totalStores}家</span>
-              </div>
-              <div className={styles.statItem}>
-                <span>总订单数：</span>
-                <span className={styles.statValue}>{stats.totalOrders}单</span>
-              </div>
-            </div>
-          )}
+          <h2 className={styles.subtitle}>甜蜜好运，幸运降临！</h2>
 
-          <div className={styles.participantList}>
-            {participants.map((p, index) => (
-              <div key={index} className={styles.participant}>
-                <div className={styles.participantName}>{p.userStoreName}</div>
-                <div className={styles.participantActions}>
-                  {p.orderCount && p.totalAmount && (
-                    <div className={styles.participantStats}>
-                      <span>{p.orderCount}单</span>
-                      <span>¥{(p.totalAmount / 100).toFixed(2)}</span>
-                    </div>
-                  )}
-                  <Button
-                    type="text"
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDeleteParticipant(p.userStoreName)}
-                    disabled={drawing}
-                    danger
-                    size="small"
-                  />
-                </div>
+          <div className={styles.content}>
+            <Card 
+              title="参与者名单" 
+              className={`${styles.card} ${styles.participantsCard}`}
+              extra={
+                <Button
+                  type="text"
+                  icon={<ClearOutlined />}
+                  onClick={handleReset}
+                  disabled={loading || drawing}
+                  danger
+                >
+                  重置
+                </Button>
+              }
+            >
+              <div className={styles.inputGroup}>
+                <DatePicker
+                  placeholder="选择起始日期"
+                  onChange={(date) => setSelectedDate(date ? date.toDate() : null)}
+                  style={{ width: '100%' }}
+                  disabled={loading || drawing}
+                />
+                <Button 
+                  type="primary"
+                  onClick={handleImport}
+                  disabled={loading || drawing || !selectedDate}
+                  icon={<ReloadOutlined />}
+                >
+                  一键导入
+                </Button>
               </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card title="奖品设置" className={`${styles.card} ${styles.prizesCard}`}>
-          <div className={styles.inputGroup}>
-            <Input
-              value={newPrizeName}
-              onChange={e => setNewPrizeName(e.target.value)}
-              placeholder="奖品名称"
-              disabled={drawing}
-            />
-            <Input
-              value={newPrizeCount}
-              onChange={e => setNewPrizeCount(e.target.value)}
-              placeholder="数量"
-              type="number"
-              min="1"
-              style={{ width: 100 }}
-              disabled={drawing}
-            />
-            <Button type="primary" onClick={handleAddPrize} disabled={drawing}>
-              添加奖品
-            </Button>
-          </div>
-          <div className={styles.prizeList}>
-            {prizes.map((prize, index) => (
-              <div key={index} className={styles.prize}>
-                {prize.name} x {prize.count}
+              <div className={styles.inputGroup}>
+                <Input
+                  value={currentName}
+                  onChange={e => setCurrentName(e.target.value)}
+                  placeholder="输入参与者姓名"
+                  disabled={loading || drawing}
+                />
+                <Button 
+                  type="primary"
+                  onClick={handleAddParticipant}
+                  disabled={loading || drawing}
+                >
+                  添加
+                </Button>
               </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card title="中奖名单" className={`${styles.card} ${styles.winnersCard}`}>
-          <div className={styles.winnerList}>
-            {winners.map((winner, index) => (
-              <div key={index} className={styles.winner}>
-                <span className={styles.winnerName}>{winner.name}</span>
-                <span className={styles.winnerPrize}>{winner.prize}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <div className={styles.drawSection}>
-          <div className={`${styles.drawBox} ${drawing ? styles.drawing : ''}`}>
-            <div className={styles.currentName}>
-              {currentName || '等待抽奖...'}
-              {currentPrize && (
-                <div className={styles.prizeName}>
-                  正在抽取: {currentPrize.name}
+              
+              {stats && (
+                <div className={styles.stats}>
+                  <div className={styles.statItem}>
+                    <span>参与店铺：</span>
+                    <span className={styles.statValue}>{stats.totalStores}家</span>
+                  </div>
+                  <div className={styles.statItem}>
+                    <span>总订单数：</span>
+                    <span className={styles.statValue}>{stats.totalOrders}单</span>
+                  </div>
                 </div>
               )}
+
+              <div className={styles.participantList}>
+                {participants.map((p, index) => (
+                  <div key={index} className={styles.participant}>
+                    <div className={styles.participantName}>{p.userStoreName}</div>
+                    <div className={styles.participantActions}>
+                      {p.orderCount && p.totalAmount && (
+                        <div className={styles.participantStats}>
+                          <span>{p.orderCount}单</span>
+                          <span>¥{(p.totalAmount / 100).toFixed(2)}</span>
+                        </div>
+                      )}
+                      <Button
+                        type="text"
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleDeleteParticipant(p.userStoreName)}
+                        disabled={drawing}
+                        danger
+                        size="small"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="奖品设置" className={`${styles.card} ${styles.prizesCard}`}>
+              <div className={styles.inputGroup}>
+                <Input
+                  value={newPrizeName}
+                  onChange={e => setNewPrizeName(e.target.value)}
+                  placeholder="奖品名称"
+                  disabled={drawing}
+                />
+                <Input
+                  value={newPrizeCount}
+                  onChange={e => setNewPrizeCount(e.target.value)}
+                  placeholder="数量"
+                  type="number"
+                  min="1"
+                  style={{ width: 100 }}
+                  disabled={drawing}
+                />
+                <Button type="primary" onClick={handleAddPrize} disabled={drawing}>
+                  添加奖品
+                </Button>
+              </div>
+              <div className={styles.prizeList}>
+                {prizes.map((prize, index) => (
+                  <div key={index} className={styles.prize}>
+                    {prize.name} x {prize.count}
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="中奖名单" className={`${styles.card} ${styles.winnersCard}`}>
+              <div className={styles.winnerList}>
+                {winners.map((winner, index) => (
+                  <div key={index} className={styles.winner}>
+                    <span className={styles.winnerName}>{winner.name}</span>
+                    <span className={styles.winnerPrize}>{winner.prize}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <div className={styles.drawSection}>
+              <div className={`${styles.drawBox} ${drawing ? styles.drawing : ''}`}>
+                <div className={styles.currentName}>
+                  {currentName || '等待抽奖...'}
+                  {currentPrize && (
+                    <div className={styles.prizeName}>
+                      正在抽取: {currentPrize.name}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Button
+                type="primary"
+                size="large"
+                className={styles.drawButton}
+                onClick={drawing ? stopDrawAnimation : startDrawAnimation}
+                disabled={loading || participants.length === 0 || prizes.every(p => p.count === 0)}
+              >
+                {drawing ? '停止抽奖' : '开始抽奖'}
+              </Button>
             </div>
           </div>
-          <Button
-            type="primary"
-            size="large"
-            className={styles.drawButton}
-            onClick={drawing ? stopDrawAnimation : startDrawAnimation}
-            disabled={loading || participants.length === 0 || prizes.every(p => p.count === 0)}
-          >
-            {drawing ? '停止抽奖' : '开始抽奖'}
-          </Button>
+          
+          {currentWinner && (
+            <WinnerModal
+              isVisible={showWinnerModal}
+              winnerName={currentWinner.name}
+              prize={currentWinner.prize}
+              onClose={handleCloseWinnerModal}
+            />
+          )}
         </div>
       </div>
-      
-      {currentWinner && (
-        <WinnerModal
-          isVisible={showWinnerModal}
-          winnerName={currentWinner.name}
-          prize={currentWinner.prize}
-          onClose={handleCloseWinnerModal}
-        />
-      )}
     </div>
   );
 } 
