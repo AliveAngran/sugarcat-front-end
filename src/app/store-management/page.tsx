@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Modal, Form, Input, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import NavBar from '@/components/NavBar';
 
 interface Store {
   _openid: string;
@@ -131,82 +130,79 @@ const StoreManagementPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 pt-4">
-      <NavBar />
-      <div className="p-6">
-        <Card title="店铺管理">
-          <div className="mb-4">
-            <Input.Search
-              placeholder="搜索店铺名称、地址或电话"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: 300 }}
-            />
-          </div>
-          <Table
-            columns={columns}
-            dataSource={filteredStores}
-            rowKey="_openid"
-            loading={loading}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total) => `共 ${total} 条`,
-            }}
+    <div className="p-6">
+      <Card title="店铺管理">
+        <div className="mb-4">
+          <Input.Search
+            placeholder="搜索店铺名称、地址或电话"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 300 }}
           />
-        </Card>
+        </div>
+        <Table
+          columns={columns}
+          dataSource={filteredStores}
+          rowKey="_openid"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条`,
+          }}
+        />
+      </Card>
 
-        <Modal
-          title="编辑店铺信息"
-          open={editModalVisible}
-          onCancel={() => setEditModalVisible(false)}
-          footer={null}
+      <Modal
+        title="编辑店铺信息"
+        open={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        footer={null}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSave}
         >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSave}
+          <Form.Item
+            label="店铺名称"
+            name="userStoreName"
+            rules={[{ required: true, message: '请输入店铺名称' }]}
           >
-            <Form.Item
-              label="店铺名称"
-              name="userStoreName"
-              rules={[{ required: true, message: '请输入店铺名称' }]}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
-              label="连凯店铺名称"
-              name="userStoreNameLiankai"
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
-              label="业务员"
-              name="salesPerson"
-              rules={[{ required: true, message: '请输入业务员' }]}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
-              label="联系电话"
-              name="phoneNumber"
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item>
-              <div className="flex justify-end space-x-4">
-                <Button onClick={() => setEditModalVisible(false)}>
-                  取消
-                </Button>
-                <Button type="primary" htmlType="submit">
-                  保存
-                </Button>
-              </div>
-            </Form.Item>
-          </Form>
-        </Modal>
-      </div>
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="连凯店铺名称"
+            name="userStoreNameLiankai"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="业务员"
+            name="salesPerson"
+            rules={[{ required: true, message: '请输入业务员' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="联系电话"
+            name="phoneNumber"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item>
+            <div className="flex justify-end space-x-4">
+              <Button onClick={() => setEditModalVisible(false)}>
+                取消
+              </Button>
+              <Button type="primary" htmlType="submit">
+                保存
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

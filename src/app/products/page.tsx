@@ -8,7 +8,6 @@ import { pinyin } from 'pinyin-pro';
 import * as XLSX from 'xlsx';
 import { CATEGORY_MAPPING, CATEGORY_NAMES, getOriginalCategory } from '@/constants/categories';
 import { uploadImageToCOS } from '@/utils/cos';
-import NavBar from '@/components/NavBar';
 
 interface Product {
   _id?: string;
@@ -953,9 +952,8 @@ function ProductManagement() {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <NavBar />
       {/* 左侧品牌筛选 - 添加高度制和滚动 */}
-      <div className="w-64 bg-white shadow-lg flex flex-col h-screen sticky top-14">
+      <div className="w-64 bg-white shadow-lg flex flex-col h-screen sticky top-0">
         {/* 标题固定在顶部 */}
         <div className="p-4 bg-gradient-to-r from-blue-600 to-blue-700 flex-shrink-0">
           <h2 className="text-xl font-bold text-white">品牌筛选</h2>
@@ -983,7 +981,7 @@ function ProductManagement() {
               {Array.from(groupedBrands.entries()).map(([initial, brandList]) => (
                 <div key={initial} className="mb-4">
                   {/* 字母分类标签 - 粘性定位 */}
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 sticky top-[66px] z-10">
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 sticky top-[52px] z-10">
                     {initial}
                   </div>
                   <div className="space-y-1 mt-1">
@@ -1011,7 +1009,7 @@ function ProductManagement() {
       </div>
 
       {/* 右侧主内容区 */}
-      <div className="flex-1 p-6 pt-20">
+      <div className="flex-1 p-6">
         {/* 添加新增商品按钮和搜索框 */}
         <div className="mb-6 flex justify-between items-center">
           <div className="flex gap-2">
