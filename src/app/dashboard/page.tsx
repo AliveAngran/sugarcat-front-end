@@ -18,6 +18,7 @@ import {
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { checkAuth } from '@/utils/auth';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 // 注册 ChartJS 组件
 ChartJS.register(
@@ -203,28 +204,66 @@ export default function Dashboard() {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-6 relative overflow-hidden">
+      {/* Fixed black navigation bar */}
+      <div className="fixed top-0 left-0 right-0 bg-black shadow-lg z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/dashboard" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
+            数据看板
+          </Link>
+          <div className="flex items-center space-x-6">
+            <Link 
+              href="/orders" 
+              className="text-gray-300 hover:text-white transition-colors flex items-center space-x-1"
+            >
+              <span className="text-lg">📋</span>
+              <span>订单管理</span>
+            </Link>
+            <Link 
+              href="/products" 
+              className="text-gray-300 hover:text-white transition-colors flex items-center space-x-1"
+            >
+              <span className="text-lg">📦</span>
+              <span>货品管理</span>
+            </Link>
+            <Link 
+              href="/delivery-planning" 
+              className="text-gray-300 hover:text-white transition-colors flex items-center space-x-1"
+            >
+              <span className="text-lg">🚚</span>
+              <span>配送规划</span>
+            </Link>
+            <Link 
+              href="/store-management" 
+              className="text-gray-300 hover:text-white transition-colors flex items-center space-x-1"
+            >
+              <span className="text-lg">🏪</span>
+              <span>店铺管理</span>
+            </Link>
+            <Link 
+              href="/lucky-draw" 
+              className="text-gray-300 hover:text-white transition-colors flex items-center space-x-1"
+            >
+              <span className="text-lg">🎲</span>
+              <span>抽奖活动</span>
+            </Link>
+            <Link 
+              href="/discount-rules" 
+              className="text-gray-300 hover:text-white transition-colors flex items-center space-x-1"
+            >
+              <span className="text-lg">🏷️</span>
+              <span>满减活动</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <div className="fixed inset-0 opacity-20">
         <div className="absolute inset-0 bg-grid-pattern animate-pulse"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(14,165,233,0.1),transparent_50%)] animate-blob"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(236,72,153,0.1),transparent_50%)] animate-blob animation-delay-2000"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto relative">
-        <motion.div 
-          style={{ opacity: headerOpacity }}
-          className="sticky top-0 z-50 backdrop-blur-sm bg-black/30 rounded-xl mb-8 p-4"
-        >
-          <motion.h1 
-            className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-center"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            数据看板
-            <div className="h-1 w-32 mx-auto bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 mt-2 rounded-full"></div>
-          </motion.h1>
-        </motion.div>
-
+      <div className="max-w-7xl mx-auto relative pt-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
             { title: '总订单数', value: data.totalOrders, icon: '📊', color: 'from-blue-900 to-blue-600' },
@@ -944,7 +983,7 @@ export default function Dashboard() {
                   </thead>
                   <tbody>
                     {data.additionalMetrics.salesmanStats.map((stat: SalesmanStat) => (
-                      <tr key={stat.salesman} className="border-b border-gray-700">
+                      <tr key={`${stat.salesman}-${stat.storeCount}-${stat.totalAmount}`} className="border-b border-gray-700">
                         <td className="py-2">{stat.salesman}</td>
                         <td className="py-2 text-right">{stat.storeCount}</td>
                         <td className="py-2 text-right">{stat.newStoreCount}</td>

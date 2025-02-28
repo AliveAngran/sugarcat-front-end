@@ -6,6 +6,7 @@ import type { Store, Vehicle, DeliveryRoute, NavigationStep, RouteStop } from '.
 import { parseStoreListJson } from './utils/fileParser';
 import { RoutePlanner } from './utils/routePlanner';
 import AMapContainer from './components/AMapContainer';
+import NavBar from '@/components/NavBar';
 
 // 车辆配置
 const VEHICLES: Vehicle[] = [
@@ -362,8 +363,9 @@ const DeliveryPlanningPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="min-h-screen bg-gray-100 p-4">
+      <NavBar />
+      <div className="space-y-4">
         <Card title="配送规划">
           <div className="space-y-4">
             <div className="space-x-4">
@@ -399,150 +401,150 @@ const DeliveryPlanningPage: React.FC = () => {
             )}
           </div>
         </Card>
-      </div>
 
-      {(stores.length > 0 || unlocatedStores.length > 0) && (
-        <Card title="店铺列表">
-          <Tabs defaultActiveKey="located" items={[
-            {
-              key: 'located',
-              label: `已定位店铺 (${stores.length})`,
-              children: (
-                <Table
-                  dataSource={stores}
-                  columns={storeColumns}
-                  rowKey="id"
-                  pagination={{
-                    pageSize: 10,
-                    showSizeChanger: true,
-                    showQuickJumper: true,
-                    showTotal: (total) => `共 ${total} 条`
-                  }}
-                  size="small"
-                />
-              )
-            },
-            {
-              key: 'unlocated',
-              label: `未定位店铺 (${unlocatedStores.length})`,
-              children: (
-                <Table
-                  dataSource={unlocatedStores}
-                  columns={storeColumns}
-                  rowKey="id"
-                  pagination={{
-                    pageSize: 10,
-                    showSizeChanger: true,
-                    showQuickJumper: true,
-                    showTotal: (total) => `共 ${total} 条`
-                  }}
-                  size="small"
-                />
-              )
-            }
-          ]} />
-        </Card>
-      )}
-
-      <Card title="地图显示">
-        <div className="h-[600px]">
-          <AMapContainer stores={stores} routes={planningResults} />
-        </div>
-      </Card>
-      
-      {planningResults && planningResults.length > 0 && (
-        <Card 
-          title={
-            <div className="flex justify-between items-center">
-              <span>配送方案</span>
-              <div className="text-right">
-                <div className="text-gray-500">
-                  共{planningResults.length}条路线，
-                  {planningResults.reduce((sum, route) => sum + route.stops.length, 0)}家店铺
-                </div>
-                <div className="text-orange-500 text-sm">
-                  {stores.length - planningResults.reduce((sum, route) => sum + route.stops.length, 0)}家店铺未分配
-                </div>
-              </div>
-            </div>
-          }
-        >
-          <div className="mb-4 bg-orange-50 p-4 rounded-lg">
-            <div className="font-medium mb-2">规划说明</div>
-            <div className="text-sm text-gray-600">
-              • 车辆配置：
-              <br />
-              - 货车：建议配送30家店铺
-              <br />
-              - 金杯车：建议配送25家店铺
-              <br />
-              • 规划策略：
-              <br />
-              - 优先使用货车配送
-              <br />
-              - 优先处理远距离区域
-              <br />
-              - 确保所有店铺都被分配到路线中
-            </div>
-          </div>
-
-          <Tabs
-            defaultActiveKey="0"
-            items={[
-              ...planningResults.map((route, index) => ({
-                key: String(index),
-                label: `路线 ${index + 1} (${route.vehicle.name})`,
-                children: renderRouteDetail(route)
-              })),
+        {(stores.length > 0 || unlocatedStores.length > 0) && (
+          <Card title="店铺列表">
+            <Tabs defaultActiveKey="located" items={[
               {
-                key: 'unassigned',
-                label: `未分配店铺 (${stores.length - planningResults.reduce((sum, route) => sum + route.stops.length, 0)})`,
+                key: 'located',
+                label: `已定位店铺 (${stores.length})`,
                 children: (
-                  <div className="space-y-4">
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                      以下店铺由于各种限制条件未能分配到路线中：
-                    </div>
-                    <Table
-                      dataSource={stores.filter(store => 
-                        !planningResults.some(route => 
-                          route.stops.some(stop => stop.store.id === store.id)
-                        )
-                      )}
-                      columns={[
-                        {
-                          title: '店铺名称',
-                          dataIndex: 'name',
-                          key: 'name',
-                        },
-                        {
-                          title: '地址',
-                          dataIndex: 'address',
-                          key: 'address',
-                        },
-                        {
-                          title: '到配送中心距离',
-                          key: 'distance',
-                          render: (_, record: Store) => {
-                            if (!record.location) return '-';
-                            const distance = Math.sqrt(
-                              Math.pow(record.location.latitude - 30.877369, 2) +
-                              Math.pow(record.location.longitude - 120.093902, 2)
-                            ) * 111; // 粗略计算公里数
-                            return `${distance.toFixed(1)}公里`;
-                          }
-                        }
-                      ]}
-                      rowKey="id"
-                      size="small"
-                      pagination={false}
-                    />
-                  </div>
+                  <Table
+                    dataSource={stores}
+                    columns={storeColumns}
+                    rowKey="id"
+                    pagination={{
+                      pageSize: 10,
+                      showSizeChanger: true,
+                      showQuickJumper: true,
+                      showTotal: (total) => `共 ${total} 条`
+                    }}
+                    size="small"
+                  />
+                )
+              },
+              {
+                key: 'unlocated',
+                label: `未定位店铺 (${unlocatedStores.length})`,
+                children: (
+                  <Table
+                    dataSource={unlocatedStores}
+                    columns={storeColumns}
+                    rowKey="id"
+                    pagination={{
+                      pageSize: 10,
+                      showSizeChanger: true,
+                      showQuickJumper: true,
+                      showTotal: (total) => `共 ${total} 条`
+                    }}
+                    size="small"
+                  />
                 )
               }
-            ]}
-          />
+            ]} />
+          </Card>
+        )}
+
+        <Card title="地图显示">
+          <div className="h-[600px]">
+            <AMapContainer stores={stores} routes={planningResults} />
+          </div>
         </Card>
-      )}
+        
+        {planningResults && planningResults.length > 0 && (
+          <Card 
+            title={
+              <div className="flex justify-between items-center">
+                <span>配送方案</span>
+                <div className="text-right">
+                  <div className="text-gray-500">
+                    共{planningResults.length}条路线，
+                    {planningResults.reduce((sum, route) => sum + route.stops.length, 0)}家店铺
+                  </div>
+                  <div className="text-orange-500 text-sm">
+                    {stores.length - planningResults.reduce((sum, route) => sum + route.stops.length, 0)}家店铺未分配
+                  </div>
+                </div>
+              </div>
+            }
+          >
+            <div className="mb-4 bg-orange-50 p-4 rounded-lg">
+              <div className="font-medium mb-2">规划说明</div>
+              <div className="text-sm text-gray-600">
+                • 车辆配置：
+                <br />
+                - 货车：建议配送30家店铺
+                <br />
+                - 金杯车：建议配送25家店铺
+                <br />
+                • 规划策略：
+                <br />
+                - 优先使用货车配送
+                <br />
+                - 优先处理远距离区域
+                <br />
+                - 确保所有店铺都被分配到路线中
+              </div>
+            </div>
+
+            <Tabs
+              defaultActiveKey="0"
+              items={[
+                ...planningResults.map((route, index) => ({
+                  key: String(index),
+                  label: `路线 ${index + 1} (${route.vehicle.name})`,
+                  children: renderRouteDetail(route)
+                })),
+                {
+                  key: 'unassigned',
+                  label: `未分配店铺 (${stores.length - planningResults.reduce((sum, route) => sum + route.stops.length, 0)})`,
+                  children: (
+                    <div className="space-y-4">
+                      <div className="bg-orange-50 p-4 rounded-lg">
+                        以下店铺由于各种限制条件未能分配到路线中：
+                      </div>
+                      <Table
+                        dataSource={stores.filter(store => 
+                          !planningResults.some(route => 
+                            route.stops.some(stop => stop.store.id === store.id)
+                          )
+                        )}
+                        columns={[
+                          {
+                            title: '店铺名称',
+                            dataIndex: 'name',
+                            key: 'name',
+                          },
+                          {
+                            title: '地址',
+                            dataIndex: 'address',
+                            key: 'address',
+                          },
+                          {
+                            title: '到配送中心距离',
+                            key: 'distance',
+                            render: (_, record: Store) => {
+                              if (!record.location) return '-';
+                              const distance = Math.sqrt(
+                                Math.pow(record.location.latitude - 30.877369, 2) +
+                                Math.pow(record.location.longitude - 120.093902, 2)
+                              ) * 111; // 粗略计算公里数
+                              return `${distance.toFixed(1)}公里`;
+                            }
+                          }
+                        ]}
+                        rowKey="id"
+                        size="small"
+                        pagination={false}
+                      />
+                    </div>
+                  )
+                }
+              ]}
+            />
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
