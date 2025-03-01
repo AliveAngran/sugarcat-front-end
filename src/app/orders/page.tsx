@@ -789,9 +789,9 @@ function OrderList() {
     <>
       <NavBar />
       <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-2 py-4">
+        <div className="container mx-auto px-2 py-4 pt-20">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-4xl font-bold text-gray-800">销售明细</h1>
+            <h1 className="text-2xl font-bold text-gray-800">销售明细</h1>
             <div className="space-x-4">
               <button
                 onClick={toggleSelectMode}
@@ -803,7 +803,7 @@ function OrderList() {
               >
                 {selectMode ? "取消选择" : "选择订单"}
               </button>
-              {selectMode && (
+              {selectMode ? (
                 <>
                   <button
                     onClick={() => {
@@ -813,45 +813,42 @@ function OrderList() {
                         .map((order) => order._id);
                       setSelectedOrders(new Set(unexportedOrders));
                     }}
-                    className="bg-yellow-600 text-white rounded-lg px-6 py-2 hover:bg-yellow-700 transition duration-200"
+                    className="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition duration-200"
                   >
                     选择未导出
                   </button>
                   <button
                     onClick={() => exportToPDF(true)}
                     disabled={exporting || selectedOrders.size === 0}
-                    className="bg-green-600 text-white rounded-lg px-6 py-2 hover:bg-green-700 transition duration-200 disabled:bg-gray-400"
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200 disabled:bg-gray-400"
                   >
                     {exporting ? "导出中..." : `导出所选(${selectedOrders.size})`}
                   </button>
                   <button
                     onClick={() => exportToExcel(true)}
                     disabled={exporting || selectedOrders.size === 0}
-                    className="bg-blue-600 text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition duration-200 disabled:bg-gray-400"
+                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition duration-200 disabled:bg-gray-400"
                   >
-                    {exporting
-                      ? "导出中..."
-                      : `导出Excel(${selectedOrders.size})`}
+                    {exporting ? "导出中..." : `导出Excel(${selectedOrders.size})`}
                   </button>
                 </>
-              )}
-              {!selectMode && (
-                <button
-                  onClick={() => exportToPDF(false)}
-                  disabled={exporting}
-                  className="bg-green-600 text-white rounded-lg px-6 py-2 hover:bg-green-700 transition duration-200 disabled:bg-gray-400"
-                >
-                  {exporting ? "导出中..." : "导出全部"}
-                </button>
-              )}
-              {!selectMode && (
-                <button
-                  onClick={() => exportToExcel(false)}
-                  disabled={exporting}
-                  className="bg-blue-600 text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition duration-200 disabled:bg-gray-400"
-                >
-                  {exporting ? "导出中..." : "导出Excel"}
-                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => exportToPDF(false)}
+                    disabled={exporting}
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200 disabled:bg-gray-400"
+                  >
+                    {exporting ? "导出中..." : "导出全部"}
+                  </button>
+                  <button
+                    onClick={() => exportToExcel(false)}
+                    disabled={exporting}
+                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition duration-200 disabled:bg-gray-400"
+                  >
+                    {exporting ? "导出中..." : "导出Excel"}
+                  </button>
+                </>
               )}
             </div>
           </div>

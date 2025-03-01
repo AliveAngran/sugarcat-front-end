@@ -44,6 +44,11 @@ export default function DiscountRulesPage() {
       return;
     }
 
+    if (currentRule.totalAmount <= 0 || currentRule.discountAmount <= 0) {
+      message.error('金额必须大于0');
+      return;
+    }
+
     if (currentRule.discountAmount >= currentRule.totalAmount) {
       message.error('优惠金额必须小于总金额');
       return;
@@ -70,7 +75,38 @@ export default function DiscountRulesPage() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/discount-rules', {
+      // 1. 先检查是否存在满减活动
+      const checkResponse = await fetch('/api/discount-rules', {
+        method: 'GET',
+      });
+
+      if (!checkResponse.ok) {
+        throw new Error('检查现有活动失败');
+      }
+
+      const { data: existingCampaigns } = await checkResponse.json();
+      console.log('现有活动:', existingCampaigns); // 调试日志
+
+      // 2. 如果存在活动，先删除现有活动
+      if (existingCampaigns && existingCampaigns.length > 0) {
+        console.log('开始删除现有活动'); // 调试日志
+        const deleteResponse = await fetch('/api/discount-rules', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (!deleteResponse.ok) {
+          const errorData = await deleteResponse.json().catch(() => ({ message: '删除现有活动失败' }));
+          throw new Error(errorData.message || '删除现有活动失败');
+        }
+        console.log('现有活动删除成功'); // 调试日志
+      }
+
+      // 3. 保存新活动
+      console.log('开始保存新活动'); // 调试日志
+      const saveResponse = await fetch('/api/discount-rules', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,15 +114,18 @@ export default function DiscountRulesPage() {
         body: JSON.stringify(campaign),
       });
 
-      if (!response.ok) {
-        throw new Error('保存失败');
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json().catch(() => ({ message: '保存失败' }));
+        throw new Error(errorData.message || '保存失败');
       }
 
+      console.log('新活动保存成功'); // 调试日志
       message.success('满减活动创建成功');
       form.resetFields();
       setRules([]);
     } catch (error) {
-      message.error('保存失败，请重试');
+      console.error('操作失败:', error);
+      message.error(error instanceof Error ? error.message : '操作失败，请重试');
     } finally {
       setLoading(false);
     }
@@ -144,10 +183,16 @@ export default function DiscountRulesPage() {
                     type="number"
                     style={{ width: 120 }}
                     value={currentRule.totalAmount}
-                    onChange={e => setCurrentRule({
-                      ...currentRule,
-                      totalAmount: Number(e.target.value)
-                    })}
+                    onChange={e => {
+                      const value = Number(e.target.value);
+                      if (value >= 0) {
+                        setCurrentRule({
+                          ...currentRule,
+                          totalAmount: value
+                        });
+                      }
+                    }}
+                    min={0}
                     placeholder="总金额"
                   />
                   <span>减</span>
@@ -155,10 +200,16 @@ export default function DiscountRulesPage() {
                     type="number"
                     style={{ width: 120 }}
                     value={currentRule.discountAmount}
-                    onChange={e => setCurrentRule({
-                      ...currentRule,
-                      discountAmount: Number(e.target.value)
-                    })}
+                    onChange={e => {
+                      const value = Number(e.target.value);
+                      if (value >= 0) {
+                        setCurrentRule({
+                          ...currentRule,
+                          discountAmount: value
+                        });
+                      }
+                    }}
+                    min={0}
                     placeholder="优惠金额"
                   />
                   <Button type="primary" onClick={handleAddRule}>

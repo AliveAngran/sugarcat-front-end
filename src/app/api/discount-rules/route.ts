@@ -30,9 +30,11 @@ export async function POST(request: Request) {
 
     // 验证规则
     for (const rule of campaign.rules) {
-      if (!rule.totalAmount || !rule.discountAmount || rule.discountAmount >= rule.totalAmount) {
+      if (!rule.totalAmount || !rule.discountAmount || 
+          rule.totalAmount <= 0 || rule.discountAmount <= 0 || 
+          rule.discountAmount >= rule.totalAmount) {
         return NextResponse.json(
-          { success: false, error: '满减规则无效' },
+          { success: false, error: '满减规则无效：金额必须大于0且优惠金额必须小于总金额' },
           { status: 400 }
         );
       }
@@ -96,6 +98,50 @@ export async function GET() {
     console.error('获取满减活动失败:', error);
     return NextResponse.json(
       { success: false, error: '获取满减活动失败' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE() {
+  try {
+    const now = new Date();
+    
+    // 获取所有活动的满减活动
+    const { data } = await db.collection('discount_coupons')
+      .where({
+        status: 'active',
+        isDeleted: false
+      })
+      .get();
+
+    if (!data || data.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: '没有需要删除的活动'
+      });
+    }
+
+    // 批量更新所有活动为已删除状态
+    const updatePromises = data.map(campaign => 
+      db.collection('discount_coupons').doc(campaign._id).update({
+        isDeleted: true,
+        status: 'inactive',
+        updateTime: new Date()
+      })
+    );
+
+    await Promise.all(updatePromises);
+
+    return NextResponse.json({
+      success: true,
+      message: '成功删除所有活动'
+    });
+
+  } catch (error) {
+    console.error('删除满减活动失败:', error);
+    return NextResponse.json(
+      { success: false, error: '删除满减活动失败' },
       { status: 500 }
     );
   }
