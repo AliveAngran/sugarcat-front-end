@@ -6,6 +6,7 @@ import { ReloadOutlined, ClearOutlined, DeleteOutlined } from '@ant-design/icons
 import styles from './page.module.css';
 import confetti from 'canvas-confetti';
 import WinnerModal from './WinnerModal';
+import NavBar from '@/components/NavBar';
 
 interface Participant {
   userStoreName: string;
@@ -29,7 +30,16 @@ interface Winner {
   prize: string;
 }
 
-export default function LuckyDraw() {
+export default function Page() {
+  return (
+    <>
+      <NavBar />
+      <LuckyDraw />
+    </>
+  );
+}
+
+function LuckyDraw() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [loading, setLoading] = useState(false);

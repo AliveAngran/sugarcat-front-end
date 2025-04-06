@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Modal, Form, Input, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import NavBar from '@/components/NavBar';
 
 interface Store {
   _openid: string;
@@ -207,4 +208,11 @@ const StoreManagementPage: React.FC = () => {
   );
 };
 
-export default StoreManagementPage; 
+export default function Page() {
+  return (
+    <>
+      <NavBar />
+      <StoreManagementPage />
+    </>
+  );
+} 

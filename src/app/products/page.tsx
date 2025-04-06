@@ -8,6 +8,7 @@ import { pinyin } from 'pinyin-pro';
 import * as XLSX from 'xlsx';
 import { CATEGORY_MAPPING, CATEGORY_NAMES, getOriginalCategory } from '@/constants/categories';
 import { uploadImageToCOS } from '@/utils/cos';
+import NavBar from '@/components/NavBar';
 
 interface Product {
   _id?: string;
@@ -1697,5 +1698,10 @@ function ProductManagement() {
 }
 
 export default function Page() {
-  return <ProductManagement />;
+  return (
+    <>
+      <NavBar />
+      <ProductManagement />
+    </>
+  );
 }

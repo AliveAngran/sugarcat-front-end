@@ -21,7 +21,7 @@ interface DiscountCampaign {
   rules: DiscountRule[];
 }
 
-export default function DiscountRulesPage() {
+function DiscountRules() {
   const router = useRouter();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -133,7 +133,6 @@ export default function DiscountRulesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavBar />
       <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 pt-6">
         <Card title="满减活动设置" className="max-w-2xl mx-auto">
           <Form
@@ -233,5 +232,14 @@ export default function DiscountRulesPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <>
+      <NavBar />
+      <DiscountRules />
+    </>
   );
 } 
