@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { checkAuth } from "@/utils/auth";
 import * as XLSX from "xlsx";
 import spudb from "@/utils/final.json";
-import NavBar from '@/components/NavBar';
+import NavBar from '../../../components/NavBar';
 
 const formatMoney = (amount: number) => {
   return (amount / 100).toFixed(2);
@@ -1207,5 +1207,10 @@ function OrderList() {
 }
 
 export default function Page() {
-  return <OrderList />;
+  return (
+    <>
+      <NavBar />
+      <OrderList />
+    </>
+  );
 }

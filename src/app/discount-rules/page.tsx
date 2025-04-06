@@ -1,11 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Input, DatePicker, Button, message, Form } from 'antd';
+import { Card, Input, DatePicker, Button, message, Form, InputNumber, Space } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { useRouter } from 'next/navigation';
 import { checkAuth } from '@/utils/auth';
-import NavBar from '@/components/NavBar';
+import NavBar from '../../../components/NavBar';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import styles from '../styles/DiscountRules.module.css';
+import { RangePickerProps } from 'antd/es/date-picker';
+import moment from 'moment';
 
 const { RangePicker } = DatePicker;
 
