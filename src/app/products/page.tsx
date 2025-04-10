@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx';
 import { CATEGORY_MAPPING, CATEGORY_NAMES, getOriginalCategory } from '@/constants/categories';
 import { uploadImageToCOS } from '@/utils/cos';
 import NavBar from '@/components/NavBar';
+import { Button, Modal, Input, Checkbox, Select, Table, Spin, Upload, message, Popconfirm } from 'antd';
 
 interface Product {
   _id?: string;
@@ -184,6 +185,39 @@ function ProductManagement() {
   const [previewImage, setPreviewImage] = useState('');
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
 
+  // 新增：处理商品上下架状态切换的函数
+  const handleToggleProductStatus = async (productId: string, currentStatus: boolean) => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/products/toggle-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productId, newStatus: !currentStatus }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // 更新前端状态
+        setProducts(prevProducts =>
+          prevProducts.map(p =>
+            p._id === productId ? { ...p, isPutOnSale: !currentStatus } : p
+          )
+        );
+        message.success(`商品已${!currentStatus ? '上架' : '下架'}`);
+      } else {
+        throw new Error(result.error || '状态切换失败');
+      }
+    } catch (error) {
+      console.error('切换商品状态失败:', error);
+      message.error('切换商品状态失败: ' + (error instanceof Error ? error.message : '未知错误'));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // 修改编辑商品的函数
   const handleUpdateProduct = async () => {
     if (!editingProduct) return;
@@ -219,38 +253,45 @@ function ProductManagement() {
     }
   };
 
-  // 修改 generateImageUrl 函数
-  const generateImageUrl = (title: string, isPrimary: boolean = false) => {
-    const brand = newProduct.brand.toLowerCase();
-    const spuId = newProduct.spuId;
-    
-    // 确保品牌名称存在，否则使用默认值
-    const brandFolder = 'other';
-    
-    const baseUrl = 'cloud://tangmao-6ga5x8ct393e0fe9.7461-tangmao-6ga5x8ct393e0fe9-1327435676/';
-    
-    if (isPrimary) {
-      // 主图使用 -zt 后缀
-      const fileName = `${brandFolder}/${spuId}-ZT.jpg`;
-      const imageUrl = baseUrl + fileName;
-      
-      // 设置主图的同时，确保它也是第一张附图
-      setNewProduct({
-        ...newProduct, 
-        primaryImage: imageUrl,
-        images: [imageUrl, ...newProduct.images.slice(1)] // 保留其他附图
+  // 现有 fetchProducts 函数 (确保它在 isPutOnSale 变化后也能正确获取数据，或者依赖 handleToggleProductStatus 更新本地状态)
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/products', {
+        cache: 'no-store',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache'
+        }
       });
-    } else {
-      // 附图：从第二张开始用数字编号 -1, -2, -3...
-      const currentImages = newProduct.images;
-      let fileNameWithIndex;
       
-      // 跳过一个索引，因为第一总是和主图一样
-      const nextIndex = currentImages.length;
-      fileNameWithIndex = `${brandFolder}/${spuId}-${nextIndex}.jpg`;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      const newImages = [...currentImages, baseUrl + fileNameWithIndex];
-      setNewProduct({...newProduct, images: newImages});
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const sortedProducts = result.data
+          .sort((a: Product, b: Product) => {
+            const timeA = a.createTime ? new Date(a.createTime).getTime() : 0;
+            const timeB = b.createTime ? new Date(b.createTime).getTime() : 0;
+            return timeB - timeA;  // 降序排序
+          });
+        
+        setProducts(sortedProducts);
+        const brandSet = new Set<string>(
+          sortedProducts
+            .map((p: Product) => p.brand)
+            .filter((brand: string): brand is string => typeof brand === 'string')
+        );
+        setBrands(brandSet); 
+      } else {
+        throw new Error(result.error || '获取失败');
+      }
+    } catch (error) {
+      console.error("获取商品数据失败:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -263,51 +304,9 @@ function ProductManagement() {
     }
   }, [router]);
 
-  // 修改获取商品数据的函数
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch('/api/products', {
-          cache: 'no-store',
-          headers: {
-            'Pragma': 'no-cache',
-            'Cache-Control': 'no-cache'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          const sortedProducts = result.data
-            .sort((a: Product, b: Product) => {
-              const timeA = a.createTime ? new Date(a.createTime).getTime() : 0;
-              const timeB = b.createTime ? new Date(b.createTime).getTime() : 0;
-              return timeB - timeA;  // 降序排序
-            });
-          
-          setProducts(sortedProducts);
-          const brandSet = new Set<string>(
-            sortedProducts
-              .map((p: Product) => p.brand)
-              .filter((brand: string): brand is string => typeof brand === 'string')
-          );
-          setBrands(brandSet); 
-        } else {
-          throw new Error(result.error || '获取失败');
-        }
-      } catch (error) {
-        console.error("获取商品数据失败:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []); // 只在组件挂载时执行一次
+    fetchProducts(); // 初始加载
+  }, [isAuthorized, router]);
 
   // 过滤商品
   const filteredProducts = products.filter((product) => {
@@ -317,7 +316,7 @@ function ProductManagement() {
     return matchesSearch && matchesBrand;
   });
 
-  // 添加保存新商品的函数
+  // 修改 handleAddProduct 函数
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -376,16 +375,19 @@ function ProductManagement() {
         });
         setSelectedNewCategories([]); // 重置分类选择
       }
+      fetchProducts(); // 添加成功后重新获取列表
     } catch (error) {
       console.error("添加商品失败:", error);
       alert("添加失败，请试");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   // 获取分组后品牌列表
   const groupedBrands = groupBrandsByInitial(brands);
 
-  // 添加删除商品的函数
+  // 修改 handleDeleteProduct 函数
   const handleDeleteProduct = async () => {
     try {
       const response = await fetch('/api/products/delete', {
@@ -414,6 +416,10 @@ function ProductManagement() {
     } catch (error) {
       console.error('删除商品失败:', error);
       alert('删除商品失败: ' + (error instanceof Error ? error.message : '未知错误'));
+    } finally {
+      setIsDeleteConfirmOpen(false);
+      setCurrentProduct(null); // 重置当前商品
+      setIsProcessing(false);
     }
   };
 
@@ -868,63 +874,6 @@ function ProductManagement() {
     );
   };
 
-  // 添加清除每月新品分类的函数
-  // const handleClearMonthlyNewCategory = async () => {
-  //   try {
-  //     // 找出所有含有'0'分类的商品
-  //     const monthlyNewProducts = products.filter(product => 
-  //       product.categoryIds?.includes('0')
-  //     );
-
-  //     if (monthlyNewProducts.length === 0) {
-  //       alert('没有找到每月新品分类的商品');
-  //       return;
-  //     }
-
-  //     const confirmed = window.confirm(`找到${monthlyNewProducts.length}个每月新品，确定要清除它们的每月新品分类吗？`);
-  //     if (!confirmed) return;
-
-  //     let successCount = 0;
-  //     let failCount = 0;
-
-  //     for (const product of monthlyNewProducts) {
-  //       try {
-  //         const updatedProduct = {
-  //           ...product,
-  //           categoryIds: product.categoryIds?.filter(id => id !== '0')
-  //         };
-
-  //         const response = await fetch('/api/products/update', {
-  //           method: 'POST',
-  //           headers: {
-  //             'Content-Type': 'application/json',
-  //             'Cache-Control': 'no-cache'
-  //           },
-  //           body: JSON.stringify(updatedProduct),
-  //         });
-
-  //         const result = await response.json();
-  //         if (result.success) {
-  //           successCount++;
-  //         } else {
-  //           failCount++;
-  //         }
-  //       } catch (error) {
-  //         console.error(`更新商品 ${product.title} 失败:`, error);
-  //         failCount++;
-  //       }
-  //     }
-
-  //     alert(`操作完成！\n成功：${successCount}个\n失败：${failCount}个`);
-  //     if (successCount > 0) {
-  //       window.location.reload(); // 刷新页面以更新数据
-  //     }
-  //   } catch (error) {
-  //     console.error('清除每月新品分类失败:', error);
-  //     alert('清除每月新品分类失败: ' + (error instanceof Error ? error.message : '未知错误'));
-  //   }
-  // };
-
   // 添加清空缓存的处理函数
   const handleClearCache = async () => {
     try {
@@ -950,6 +899,83 @@ function ProductManagement() {
   if (!isAuthorized) {
     return null; // 未授权时不渲染任何内容，等待重定向
   }
+
+  // 定义表格列
+  const columns = [
+    {
+      title: '商品名称',
+      dataIndex: 'title',
+      key: 'title',
+    },
+    {
+      title: '条码',
+      dataIndex: 'spuId',
+      key: 'spuId',
+    },
+    {
+      title: '规格',
+      dataIndex: 'desc',
+      key: 'desc',
+    },
+    {
+      title: '价格',
+      dataIndex: 'price',
+      key: 'price',
+    },
+    {
+      title: '最小购量',
+      dataIndex: 'minBuyNum',
+      key: 'minBuyNum',
+    },
+    {
+      title: '状态',
+      key: 'isPutOnSale',
+      dataIndex: 'isPutOnSale',
+      render: (isPutOnSale: boolean, record: Product) => (
+        <Popconfirm
+          title={`确定要${isPutOnSale ? '下架' : '上架'}此商品吗？`}
+          onConfirm={() => handleToggleProductStatus(record._id!, isPutOnSale)}
+          okText="确定"
+          cancelText="取消"
+        >
+          <span style={{ 
+              color: isPutOnSale ? 'green' : 'red', 
+              cursor: 'pointer', 
+              textDecoration: 'underline' 
+            }}>
+            {isPutOnSale ? '已上架' : '未上架'}
+          </span>
+        </Popconfirm>
+      ),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_: any, record: Product) => (
+        <span>
+          <Button type="link" onClick={() => {
+            // 预加载 loadcos 处理过的图片 URL
+            const processedImages = record.images.map(loadcos);
+            const processedPrimaryImage = loadcos(record.primaryImage);
+            
+            setEditingProduct({ 
+              ...record, 
+              images: processedImages, 
+              primaryImage: processedPrimaryImage 
+            });
+            // 解析 categoryIds
+            const currentCategories = record.categoryIds ? record.categoryIds.map(Number) : [];
+            setSelectedCategories(currentCategories);
+            setIsEditModalOpen(true); 
+          }}>编辑</Button>
+          <Button type="link" danger onClick={() => { setCurrentProduct(record); setIsDeleteConfirmOpen(true); }}>删除</Button>
+          {/* 添加生成毛利图按钮 */}
+          <Button type="link" onClick={() => handleGenerateGrossMarginImage(record)}>生成毛利图</Button>
+
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -1042,12 +1068,6 @@ function ProductManagement() {
                 onClick={(e) => (e.currentTarget.value = '')}
               />
             </label>
-            {/* <button
-              onClick={handleClearMonthlyNewCategory}
-              className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-            >
-              清除每月新品
-            </button> */}
           </div>
           
           <input
@@ -1059,76 +1079,15 @@ function ProductManagement() {
           />
         </div>
 
-        {/* 商品列表 - 为表格形式 */}
-        <div className="bg-white rounded-lg shadow">
-          <table className="min-w-full">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">商品名称</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">条码</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">规格</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最小购量</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProducts.map((product) => (
-                <tr key={product.spuId} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{product.title}</div>
-                    <div className="text-sm text-gray-500">{product.brand}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {product.spuId}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {product.desc}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-red-600 font-medium">¥{product.price}</div>
-                    <div className="text-sm text-gray-400 line-through">¥{product.originPrice}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {product.minBuyNum}{product.unit}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        product.isPutOnSale ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {product.isPutOnSale ? '已上架' : '未上架'}
-                      </span>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        product.buyAtMultipleTimes ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {product.buyAtMultipleTimes ? '倍购' : '非倍购'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => {
-                        setEditingProduct(product);
-                        setIsEditModalOpen(true);
-                      }}
-                      className="text-blue-600 hover:text-blue-900 mr-2"
-                    >
-                      编辑
-                    </button>
-                    <button
-                      onClick={() => handleGenerateGrossMarginImage(product)}
-                      className="text-green-600 hover:text-green-900"
-                    >
-                      生成毛利图
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* 商品列表 */}
+        <Spin spinning={loading || isProcessing}>
+          <Table 
+            dataSource={filteredProducts} 
+            columns={columns} 
+            rowKey="_id" 
+            pagination={{ pageSize: 10 }} // Adjust page size if needed
+          />
+        </Spin>
 
         {/* 编辑模态框 */}
         {isEditModalOpen && editingProduct && (
