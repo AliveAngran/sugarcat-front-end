@@ -5,11 +5,11 @@ import { Card, Input, DatePicker, Button, message, Form, InputNumber, Space } fr
 import type { Dayjs } from 'dayjs';
 import { useRouter } from 'next/navigation';
 import { checkAuth } from '@/utils/auth';
-import NavBar from '../../../components/NavBar';
+import NavBar from '@/components/NavBar';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import styles from '../styles/DiscountRules.module.css';
 import { RangePickerProps } from 'antd/es/date-picker';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
 

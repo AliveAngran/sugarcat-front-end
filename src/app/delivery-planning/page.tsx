@@ -6,7 +6,7 @@ import type { Store, Vehicle, DeliveryRoute, NavigationStep, RouteStop } from '.
 import { parseStoreListJson } from './utils/fileParser';
 import { RoutePlanner } from './utils/routePlanner';
 import AMapContainer from './components/AMapContainer';
-import NavBar from '../../../components/NavBar';
+import NavBar from '@/components/NavBar';
 
 // 车辆配置
 const VEHICLES: Vehicle[] = [
