@@ -187,6 +187,14 @@ function ProductManagement() {
 
   // 新增：处理商品上下架状态切换的函数
   const handleToggleProductStatus = async (productId: string, currentStatus: number) => {
+    if (!productId) {
+      message.error('无效的商品ID');
+      return;
+    }
+    
+    // 确保状态值是 0 或 1
+    const newStatus = currentStatus === 1 ? 0 : 1;
+    
     setIsProcessing(true);
     try {
       const response = await fetch('/api/products/toggle-status', {
@@ -194,7 +202,7 @@ function ProductManagement() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ productId, newStatus: currentStatus === 1 ? 0 : 1 }),
+        body: JSON.stringify({ productId, newStatus }),
       });
 
       const result = await response.json();
@@ -203,7 +211,7 @@ function ProductManagement() {
         // 更新前端状态
         setProducts(prevProducts =>
           prevProducts.map(p =>
-            p._id === productId ? { ...p, isPutOnSale: currentStatus === 1 ? 0 : 1 } : p
+            p._id === productId ? { ...p, isPutOnSale: newStatus } : p
           )
         );
         message.success(`商品已${currentStatus === 1 ? '设为补货中' : '上架'}`);
@@ -934,7 +942,7 @@ function ProductManagement() {
       render: (isPutOnSale: number, record: Product) => (
         <Popconfirm
           title={`确定要${isPutOnSale === 1 ? '设为补货中' : '上架'}此商品吗？`}
-          onConfirm={() => handleToggleProductStatus(record._id!, isPutOnSale)}
+          onConfirm={() => record._id ? handleToggleProductStatus(record._id, isPutOnSale) : message.error('无效的商品ID')}
           okText="确定"
           cancelText="取消"
         >
