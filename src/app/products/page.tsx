@@ -31,7 +31,7 @@ interface Product {
   multipleAmount?: string;
   createTime?: string;
   categoryIds?: string[];
-  isPutOnSale: boolean;
+  isPutOnSale: number;
 }
 
 // 修改 loadcos 函数以支持多种URL格式
@@ -186,7 +186,7 @@ function ProductManagement() {
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
 
   // 新增：处理商品上下架状态切换的函数
-  const handleToggleProductStatus = async (productId: string, currentStatus: boolean) => {
+  const handleToggleProductStatus = async (productId: string, currentStatus: number) => {
     setIsProcessing(true);
     try {
       const response = await fetch('/api/products/toggle-status', {
@@ -194,7 +194,7 @@ function ProductManagement() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ productId, newStatus: !currentStatus }),
+        body: JSON.stringify({ productId, newStatus: currentStatus === 1 ? 0 : 1 }),
       });
 
       const result = await response.json();
@@ -203,10 +203,10 @@ function ProductManagement() {
         // 更新前端状态
         setProducts(prevProducts =>
           prevProducts.map(p =>
-            p._id === productId ? { ...p, isPutOnSale: !currentStatus } : p
+            p._id === productId ? { ...p, isPutOnSale: currentStatus === 1 ? 0 : 1 } : p
           )
         );
-        message.success(`商品已${!currentStatus ? '上架' : '下架'}`);
+        message.success(`商品已${currentStatus === 1 ? '设为补货中' : '上架'}`);
       } else {
         throw new Error(result.error || '状态切换失败');
       }
@@ -931,19 +931,19 @@ function ProductManagement() {
       title: '状态',
       key: 'isPutOnSale',
       dataIndex: 'isPutOnSale',
-      render: (isPutOnSale: boolean, record: Product) => (
+      render: (isPutOnSale: number, record: Product) => (
         <Popconfirm
-          title={`确定要${isPutOnSale ? '下架' : '上架'}此商品吗？`}
+          title={`确定要${isPutOnSale === 1 ? '设为补货中' : '上架'}此商品吗？`}
           onConfirm={() => handleToggleProductStatus(record._id!, isPutOnSale)}
           okText="确定"
           cancelText="取消"
         >
           <span style={{ 
-              color: isPutOnSale ? 'green' : 'red', 
+              color: isPutOnSale === 1 ? 'green' : 'orange', 
               cursor: 'pointer', 
               textDecoration: 'underline' 
             }}>
-            {isPutOnSale ? '已上架' : '未上架'}
+            {isPutOnSale === 1 ? '已上架' : '补货中'}
           </span>
         </Popconfirm>
       ),

@@ -5,10 +5,10 @@ export async function POST(request: Request) {
   try {
     const { productId, newStatus } = await request.json();
 
-    if (!productId || typeof newStatus !== 'boolean') {
+    if (!productId || typeof newStatus !== 'number' || (newStatus !== 0 && newStatus !== 1)) {
       return NextResponse.json({
         success: false,
-        error: '无效的请求参数：缺少 productId 或 newStatus',
+        error: '无效的请求参数：缺少 productId 或 newStatus 无效（必须为 0 或 1）',
       }, { status: 400 });
     }
 
