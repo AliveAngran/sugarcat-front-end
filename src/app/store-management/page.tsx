@@ -25,19 +25,42 @@ const StoreManagementPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [form] = Form.useForm();
 
-  // 获取店铺列表
+  // 获取店铺列表 - 修改为循环获取
   const fetchStores = async () => {
+    setLoading(true);
+    let allStores: Store[] = [];
+    let skip = 0;
+    const limit = 1000; // 每次获取的数量
+
     try {
-      setLoading(true);
-      const response = await fetch('/api/users');
-      const data = await response.json();
-      if (data.success) {
-        setStores(data.data);
-      } else {
-        message.error('获取店铺列表失败');
+      while (true) {
+        console.log(`Fetching stores: skip=${skip}, limit=${limit}`);
+        const response = await fetch(`/api/users?limit=${limit}&skip=${skip}`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          allStores = allStores.concat(data.data);
+          console.log(`Fetched ${data.data.length} stores, total now: ${allStores.length}`);
+          
+          // 如果返回的数量小于请求的数量，说明是最后一页
+          if (data.data.length < limit) {
+            console.log('Last page reached.');
+            break;
+          }
+          
+          // 准备下一次请求
+          skip += limit;
+        } else {
+          message.error('获取店铺列表时出错：' + (data.error || '未知错误'));
+          console.error('API Error:', data);
+          break; // 出错时停止循环
+        }
       }
+      setStores(allStores);
+      console.log('Finished fetching all stores.');
     } catch (error) {
-      message.error('获取店铺列表失败');
+      message.error('获取店铺列表失败: ' + (error instanceof Error ? error.message : '网络错误'));
+      console.error('Network or parsing Error:', error);
     } finally {
       setLoading(false);
     }
