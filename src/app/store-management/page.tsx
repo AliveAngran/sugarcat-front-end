@@ -25,25 +25,37 @@ const StoreManagementPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [form] = Form.useForm();
 
-  // 获取店铺列表 - 修改为循环获取
+  // 获取店铺列表 - 修改为循环获取，最多 5000 条
   const fetchStores = async () => {
     setLoading(true);
     let allStores: Store[] = [];
     let skip = 0;
     const limit = 1000; // 每次获取的数量
+    const maxStores = 5000; // 最多获取的总数
 
     try {
       while (true) {
+        // 增加总数限制检查
+        if (allStores.length >= maxStores) {
+          console.log(`Reached max store limit of ${maxStores}. Stopping fetch.`);
+          break;
+        }
+
         console.log(`Fetching stores: skip=${skip}, limit=${limit}`);
         const response = await fetch(`/api/users?limit=${limit}&skip=${skip}`);
         const data = await response.json();
 
         if (data.success && data.data) {
-          allStores = allStores.concat(data.data);
-          console.log(`Fetched ${data.data.length} stores, total now: ${allStores.length}`);
+          const fetchedCount = data.data.length;
+          // 计算还能添加多少店铺以不超过 maxStores
+          const remainingSpace = maxStores - allStores.length;
+          const storesToAdd = fetchedCount > remainingSpace ? data.data.slice(0, remainingSpace) : data.data;
           
-          // 如果返回的数量小于请求的数量，说明是最后一页
-          if (data.data.length < limit) {
+          allStores = allStores.concat(storesToAdd);
+          console.log(`Fetched ${fetchedCount} stores (added ${storesToAdd.length}), total now: ${allStores.length}`);
+          
+          // 如果实际获取的数量小于请求的数量，说明是最后一页
+          if (fetchedCount < limit) {
             console.log('Last page reached.');
             break;
           }
@@ -57,7 +69,7 @@ const StoreManagementPage: React.FC = () => {
         }
       }
       setStores(allStores);
-      console.log('Finished fetching all stores.');
+      console.log(`Finished fetching stores. Total loaded: ${allStores.length}`);
     } catch (error) {
       message.error('获取店铺列表失败: ' + (error instanceof Error ? error.message : '网络错误'));
       console.error('Network or parsing Error:', error);
@@ -109,10 +121,14 @@ const StoreManagementPage: React.FC = () => {
   // 过滤数据
   const filteredStores = stores.filter((store) => {
     if (!searchText) return true;
+    const lowerSearchText = searchText.toLowerCase();
     return (
-      store.userStoreName?.toLowerCase().includes(searchText.toLowerCase()) ||
-      store.userStoreAddress?.toLowerCase().includes(searchText.toLowerCase()) ||
-      store.userStorePhone?.includes(searchText)
+      store.userStoreName?.toLowerCase().includes(lowerSearchText) ||
+      store.userStoreNameLiankai?.toLowerCase().includes(lowerSearchText) ||
+      store.salesPerson?.toLowerCase().includes(lowerSearchText) ||
+      store.userStoreAddress?.toLowerCase().includes(lowerSearchText) ||
+      store.userStorePhone?.includes(searchText) ||
+      store.phoneNumber?.includes(searchText)
     );
   });
 
@@ -158,10 +174,10 @@ const StoreManagementPage: React.FC = () => {
     <div className="p-6">
       <div className="mb-4">
         <Input.Search
-          placeholder="搜索店铺名称、地址或电话"
+          placeholder="搜索店铺名称、连凯名称、业务员、地址或电话"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          style={{ width: 300 }}
+          style={{ width: 400 }}
         />
       </div>
       <Table
