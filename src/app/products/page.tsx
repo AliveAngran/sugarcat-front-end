@@ -262,46 +262,46 @@ function ProductManagement() {
   };
 
   // 现有 fetchProducts 函数 (确保它在 isPutOnSale 变化后也能正确获取数据，或者依赖 handleToggleProductStatus 更新本地状态)
-  const fetchProducts = async () => {
-    try {
-      const response = await fetch('/api/products', {
-        cache: 'no-store',
-        headers: {
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        const sortedProducts = result.data
-          .sort((a: Product, b: Product) => {
-            const timeA = a.createTime ? new Date(a.createTime).getTime() : 0;
-            const timeB = b.createTime ? new Date(b.createTime).getTime() : 0;
-            return timeB - timeA;  // 降序排序
-          });
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('/api/products', {
+          cache: 'no-store',
+          headers: {
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache'
+          }
+        });
         
-        setProducts(sortedProducts);
-        const brandSet = new Set<string>(
-          sortedProducts
-            .map((p: Product) => p.brand)
-            .filter((brand: string): brand is string => typeof brand === 'string')
-        );
-        setBrands(brandSet); 
-      } else {
-        throw new Error(result.error || '获取失败');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const sortedProducts = result.data
+            .sort((a: Product, b: Product) => {
+              const timeA = a.createTime ? new Date(a.createTime).getTime() : 0;
+              const timeB = b.createTime ? new Date(b.createTime).getTime() : 0;
+              return timeB - timeA;  // 降序排序
+            });
+          
+          setProducts(sortedProducts);
+          const brandSet = new Set<string>(
+            sortedProducts
+              .map((p: Product) => p.brand)
+              .filter((brand: string): brand is string => typeof brand === 'string')
+          );
+          setBrands(brandSet); 
+        } else {
+          throw new Error(result.error || '获取失败');
+        }
+      } catch (error) {
+        console.error("获取商品数据失败:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("获取商品数据失败:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   useEffect(() => {
     const auth = checkAuth();

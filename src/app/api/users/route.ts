@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const skip = parseInt(url.searchParams.get('skip') || '0', 10);
 
     console.log(`[API] Fetching users: skip=${skip}, limit=${limit}`); // 后端日志
-
+    
     const usersResult = await db.collection('users')
       .skip(skip)
       .limit(limit)
