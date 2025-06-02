@@ -131,10 +131,6 @@ function OrderList() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [editingLiankaiId, setEditingLiankaiId] = useState<string | null>(null);
   const [newLiankaiName, setNewLiankaiName] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
-  const pageSize = 100;
 
   useEffect(() => {
     const auth = checkAuth();
@@ -157,11 +153,11 @@ function OrderList() {
     });
   };
 
-  // 修改获取订单的函数以支持分页
-  const fetchOrders = async (page: number = 1) => {
+  // 修改获取订单的函数
+  const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/orders?page=${page}&pageSize=${pageSize}`, {
+      const response = await fetch(`/api/orders`, {
         cache: "no-store",
       });
 
@@ -175,10 +171,7 @@ function OrderList() {
         throw new Error(result.error || "获取订单失败");
       }
 
-      setOrders(result.data);
-      setTotalPages(result.pagination.totalPages);
-      setTotalRecords(result.pagination.total);
-      setCurrentPage(result.pagination.current);
+      setOrders(result.data || []);
       setError(null);
     } catch (err) {
       console.error("获取订单失败:", err);
@@ -190,9 +183,9 @@ function OrderList() {
 
   useEffect(() => {
     if (isAuthorized) {
-      fetchOrders(currentPage);
+      fetchOrders();
     }
-  }, [isAuthorized, currentPage]);
+  }, [isAuthorized]);
 
   const getOrderStatusStyle = (status: number) => {
     switch (status) {
@@ -559,7 +552,7 @@ function OrderList() {
       pdf.save(`销售明细_${new Date().toLocaleDateString()}.pdf`);
 
       // 重新获取最新数据
-      await fetchOrders(currentPage);
+      await fetchOrders();
     } catch (error) {
       console.error("PDF导出失败:", error);
       alert("PDF导出失败，请重试");
@@ -633,7 +626,7 @@ function OrderList() {
       console.log("Update result:", result);
 
       // 刷新订单列表
-      await fetchOrders(currentPage);
+      await fetchOrders();
       setEditingLiankaiId(null);
       setNewLiankaiName("");
     } catch (error) {
@@ -743,7 +736,7 @@ function OrderList() {
       );
 
       // 重新获取数据
-      await fetchOrders(currentPage);
+      await fetchOrders();
     } catch (error) {
       console.error("Excel导出失败:", error);
       alert("Excel导出失败，请重试");
@@ -754,10 +747,6 @@ function OrderList() {
         setSelectedOrders(new Set());
       }
     }
-  };
-
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
   };
 
   if (loading) {
@@ -902,7 +891,7 @@ function OrderList() {
                 )}
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-lg font-semibold">
-                    {totalRecords - ((currentPage - 1) * pageSize + index)}. 订单号: {order.orderNo}
+                    {orders.length - index}. 订单号: {order.orderNo}
                   </span>
                   <div className="flex items-center space-x-4 no-print">
                     {order.payStatus === "UNPAID" && (
@@ -1146,59 +1135,6 @@ function OrderList() {
                 )}
               </div>
             ))}
-          </div>
-
-          {/* 添加分页控件 */}
-          <div className="mt-4 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
-              共 {totalRecords} 条记录，第 {currentPage} / {totalPages} 页
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => handlePageChange(1)}
-                disabled={currentPage === 1}
-                className={`px-3 py-1 rounded ${
-                  currentPage === 1
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-500 text-white hover:bg-blue-600"
-                }`}
-              >
-                首页
-              </button>
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-3 py-1 rounded ${
-                  currentPage === 1
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-500 text-white hover:bg-blue-600"
-                }`}
-              >
-                上一页
-              </button>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-1 rounded ${
-                  currentPage === totalPages
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-500 text-white hover:bg-blue-600"
-                }`}
-              >
-                下一页
-              </button>
-              <button
-                onClick={() => handlePageChange(totalPages)}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-1 rounded ${
-                  currentPage === totalPages
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-500 text-white hover:bg-blue-600"
-                }`}
-              >
-                末页
-              </button>
-            </div>
           </div>
         </div>
       </div>

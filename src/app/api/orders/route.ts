@@ -1,118 +1,64 @@
 import { NextResponse } from 'next/server';
 import { cloudbase } from '@/utils/cloudbase-admin';
-import cloud from '@cloudbase/node-sdk';
+// import cloud from '@cloudbase/node-sdk'; // 不再需要单独的 cloud 初始化
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// 初始化云开发
-const app = cloud.init({
-  env: process.env.NEXT_PUBLIC_ENV_ID as string,
-  secretId: process.env.TCB_SECRET_ID as string,
-  secretKey: process.env.TCB_SECRET_KEY as string,
-});
+// // 初始化云开发 - 如果 cloudbase 实例已包含认证，则可能不再需要单独 init
+// const app = cloud.init({
+//   env: process.env.NEXT_PUBLIC_ENV_ID as string,
+//   secretId: process.env.TCB_SECRET_ID as string,
+//   secretKey: process.env.TCB_SECRET_KEY as string,
+// });
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '100');
-    const skip = (page - 1) * pageSize;
-
     const db = cloudbase.database();
     const _ = db.command;
+    const limit = 200; // 固定查询最近 200 条
     
-    // 获取总记录数
-    const countResult = await db.collection('orders')
-      .where({})
-      .count();
+    console.log(`[Orders API] Fetching latest ${limit} orders...`);
     
-    const total = countResult.total || 0;
-    
-    // 获取当前页的订单数据
+    // 获取最近的 200 条订单数据
     const ordersResult = await db.collection('orders')
       .orderBy('createTime', 'desc')
-      .skip(skip)
-      .limit(pageSize)
+      .limit(limit)
       .get();
     
+    if (!ordersResult.data || ordersResult.data.length === 0) {
+      console.log('[Orders API] No orders found.');
+      return NextResponse.json({
+        success: true,
+        data: [],
+        // pagination: { total: 0, current: 1, pageSize: limit, totalPages: 1 } // 可选，如果前端仍需要分页结构
+      });
+    }
+    console.log(`[Orders API] Fetched ${ordersResult.data.length} orders.`);
+
     // 获取所有相关用户的 openid
     const openids = Array.from(new Set(ordersResult.data.map((order: any) => order._openid)));
     
-    // 分批查询用户数据
-    const BATCH_SIZE = 100; // 降低批次大小以提高稳定性
-    const userBatches = [];
-    const MAX_RETRIES = 3; // 最大重试次数
-    
-    // 将openids分成多个批次
-    for (let i = 0; i < openids.length; i += BATCH_SIZE) {
-      const batchOpenids = openids.slice(i, i + BATCH_SIZE);
-      userBatches.push(batchOpenids);
+    let allUsers: any[] = [];
+    if (openids.length > 0) {
+      console.log(`[Orders API] Found ${openids.length} unique openids. Fetching user data...`);
+      // 一次性查询所有相关的用户信息 (假设数量可控，对于200条订单，关联用户数通常不会超限)
+      const usersQueryResult = await db.collection('users')
+        .where({
+          _openid: _.in(openids)
+        })
+        .limit(1000) // 假设关联用户不会超过1000，Cloudbase单次查询上限
+        .get();
+      allUsers = usersQueryResult.data || [];
+      console.log(`[Orders API] Fetched ${allUsers.length} user records.`);
     }
-
-    // 带重试机制的用户查询函数
-    async function queryUsersWithRetry(batchOpenids: string[], retryCount = 0): Promise<any> {
-      try {
-        const result = await db.collection('users')
-          .where({
-            _openid: _.in(batchOpenids)
-          })
-          .get();
-        return result;
-      } catch (error) {
-        console.error(`[Orders API] 批次用户查询失败 (第${retryCount + 1}次尝试):`, error);
-        console.error('失败的openids:', batchOpenids);
-        
-        if (retryCount < MAX_RETRIES - 1) {
-          // 等待一段时间后重试
-          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-          return queryUsersWithRetry(batchOpenids, retryCount + 1);
-        }
-        
-        // 超过最大重试次数，返回空结果
-        console.error(`[Orders API] 批次用户查询在${MAX_RETRIES}次尝试后仍然失败`);
-        return { data: [] };
-      }
-    }
-
-    // 并发查询所有批次
-    const userResults = await Promise.all(
-      userBatches.map(batch => queryUsersWithRetry(batch))
-    );
-    
-    // 合并所有批次的结果并过滤无效记录
-    const allUsers = userResults.reduce((acc: any[], result) => {
-      const validUsers = result.data.filter((user: any) => {
-        const isValid = user && user.userStoreName;
-        if (!isValid) {
-          console.warn('[Orders API] 发现无效用户记录:', {
-            openid: user._openid,
-            rawData: {
-              userStoreName: user.userStoreName,
-              userStoreNameLiankai: user.userStoreNameLiankai,
-              salesPerson: user.salesPerson,
-              phoneNumber: user.phoneNumber
-            }
-          });
-        }
-        return isValid;
-      });
-      return [...acc, ...validUsers];
-    }, [] as any[]);
-
-    // 记录查询结果统计
-    console.log(`[Orders API] 用户查询统计:
-      - 总订单数: ${ordersResult.data.length}
-      - 不同openid数: ${openids.length}
-      - 查询到的用户数: ${allUsers.length}
-      - 无效用户数: ${openids.length - allUsers.length}`);
 
     // 创建用户信息映射
     const userMap = new Map(
       allUsers.map((user: any) => [
         user._openid,
         {
-          userStoreName: user.userStoreName.trim(),
+          userStoreName: user.userStoreName?.trim() || "未知店家", // 提供默认值
           userStoreNameLiankai: user.userStoreNameLiankai?.trim() || "",
           salesPerson: user.salesPerson?.trim() || "未知",
           phoneNumber: user.phoneNumber?.trim() || ""
@@ -123,33 +69,19 @@ export async function GET(request: Request) {
     // 记录未找到用户信息的openid
     const missingUsers = openids.filter(openid => !userMap.has(openid));
     if (missingUsers.length > 0) {
-      console.warn('[Orders API] 以下openid未找到对应用户信息:', missingUsers);
+      console.warn('[Orders API] The following openids did not find corresponding user information:', missingUsers);
     }
 
     // 处理订单数据
     const processedOrders = ordersResult.data.map((order: any) => {
-      const userInfo = userMap.get(order._openid);
-      
-      // 记录显示为未知店家的订单信息
-      if (!userInfo || userInfo.userStoreName === "未知店家") {
-        console.warn('[Orders API] 订单显示为未知店家:', {
-          orderId: order._id,
-          openid: order._openid,
-          createTime: order.createTime,
-          userInfo: userInfo || null
-        });
-      }
-      
-      const finalUserInfo = userInfo || {
+      const userInfo = userMap.get(order._openid) || {
         userStoreName: "未知店家",
         userStoreNameLiankai: "",
         salesPerson: "未知",
         phoneNumber: ""
-      };
-
-      // 处理商品列表
-      const processedGoodsList = order.goodsList.map((goods: any) => {
-        // 解析商品描述
+      }; // 如果没有找到用户信息，则使用默认值
+      
+      const processedGoodsList = (order.goodsList || []).map((goods: any) => {
         const parsedDesc = parseDescription(goods.desc || "");
         return {
           ...goods,
@@ -159,10 +91,10 @@ export async function GET(request: Request) {
 
       return {
         ...order,
-        userStoreName: finalUserInfo.userStoreName,
-        userStoreNameLiankai: finalUserInfo.userStoreNameLiankai,
-        salesPerson: finalUserInfo.salesPerson,
-        userPhoneNumber: finalUserInfo.phoneNumber,
+        userStoreName: userInfo.userStoreName,
+        userStoreNameLiankai: userInfo.userStoreNameLiankai,
+        salesPerson: userInfo.salesPerson,
+        userPhoneNumber: userInfo.phoneNumber,
         goodsList: processedGoodsList,
         totalSalePrice: order.totalSalePrice
       };
@@ -171,17 +103,13 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       data: processedOrders,
-      pagination: {
-        total,
-        current: page,
-        pageSize,
-        totalPages: Math.ceil(total / pageSize) + 1
-      }
+      // 移除了复杂的分页，如果前端仍需要简单的分页信息可以按需添加
+      // pagination: { total: ordersResult.data.length, current: 1, pageSize: limit, totalPages: 1 }
     });
   } catch (error) {
     console.error("[Orders API] Error fetching orders:", error);
     return NextResponse.json(
-      { error: "Failed to fetch orders" },
+      { success: false, error: "Failed to fetch orders" }, // 更通用的错误信息
       { status: 500 }
     );
   }
@@ -193,7 +121,7 @@ export async function PATCH(request: Request) {
     const { orderId, newStatus, isExported } = await request.json();
     
     // 获取数据库实例
-    const db = app.database();
+    const db = cloudbase.database();
     
     // 验证必填字段
     if (!orderId) {

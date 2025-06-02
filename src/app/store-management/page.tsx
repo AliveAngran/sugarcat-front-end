@@ -304,12 +304,12 @@ const StoreManagementPage: React.FC = () => {
   return (
     <div className="p-6">
       <div className="mb-4 flex justify-between items-center">
-        <Input.Search
+          <Input.Search
           placeholder="搜索店铺名称、连凯名称、业务员、地址或电话"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
           style={{ width: 400 }}
-        />
+          />
         <div className="flex space-x-2">
           <Button
             type="primary"
@@ -320,19 +320,19 @@ const StoreManagementPage: React.FC = () => {
             导出 Excel
           </Button>
         </div>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={filteredStores}
-        rowKey="_openid"
-        loading={loading}
-        pagination={{
-          pageSize: 10,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total) => `共 ${total} 条`,
-        }}
-      />
+        </div>
+        <Table
+          columns={columns}
+          dataSource={filteredStores}
+          rowKey="_openid"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条`,
+          }}
+        />
 
       <Modal
         title="编辑店铺信息"
