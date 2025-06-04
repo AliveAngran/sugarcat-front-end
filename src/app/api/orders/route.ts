@@ -4,6 +4,7 @@ import { cloudbase } from '@/utils/cloudbase-admin';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const maxDuration = 10; // 增加最大执行时间到 60 秒
 
 // // 初始化云开发 - 如果 cloudbase 实例已包含认证，则可能不再需要单独 init
 // const app = cloud.init({
