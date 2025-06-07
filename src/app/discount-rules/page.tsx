@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Input, DatePicker, Button, message, Form, InputNumber, Space } from 'antd';
+import { Card, Input, DatePicker, Button, message, Form, InputNumber, Space, Modal, Spin, Typography, Tag } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { useRouter } from 'next/navigation';
 import { checkAuth } from '@/utils/auth';
@@ -12,6 +12,7 @@ import { RangePickerProps } from 'antd/es/date-picker';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
+const { Title, Text } = Typography;
 
 interface DiscountRule {
   totalAmount: number;
@@ -19,6 +20,7 @@ interface DiscountRule {
 }
 
 interface DiscountCampaign {
+  _id?: string;
   title: string;
   startTime: string;
   endTime: string;
@@ -34,11 +36,36 @@ function DiscountRules() {
     totalAmount: 0,
     discountAmount: 0,
   });
+  const [existingCampaign, setExistingCampaign] = useState<DiscountCampaign | null>(null);
+  const [fetchLoading, setFetchLoading] = useState(true);
+
+  const fetchCampaign = async () => {
+    setFetchLoading(true);
+    try {
+      const response = await fetch('/api/discount-rules');
+      if (!response.ok) {
+        throw new Error('获取活动信息失败');
+      }
+      const { data } = await response.json();
+      if (data && data.length > 0) {
+        setExistingCampaign(data[0]);
+      } else {
+        setExistingCampaign(null);
+      }
+    } catch (error) {
+      console.error(error);
+      message.error(error instanceof Error ? error.message : '获取活动信息失败');
+    } finally {
+      setFetchLoading(false);
+    }
+  };
 
   useEffect(() => {
     const auth = checkAuth();
     if (!auth) {
       router.push('/');
+    } else {
+      fetchCampaign();
     }
   }, [router]);
 
@@ -62,6 +89,36 @@ function DiscountRules() {
     setCurrentRule({ totalAmount: 0, discountAmount: 0 });
   };
 
+  const handleDeleteCampaign = () => {
+    Modal.confirm({
+      title: '确认删除活动',
+      content: '您确定要删除当前的满减活动吗？此操作将无法撤销。',
+      okText: '确认删除',
+      cancelText: '取消',
+      okType: 'danger',
+      onOk: async () => {
+        setLoading(true);
+        try {
+          const deleteResponse = await fetch('/api/discount-rules', {
+            method: 'DELETE',
+          });
+
+          if (!deleteResponse.ok) {
+            const errorData = await deleteResponse.json().catch(() => ({ message: '删除现有活动失败' }));
+            throw new Error(errorData.message || '删除现有活动失败');
+          }
+          message.success('活动删除成功');
+          setExistingCampaign(null);
+        } catch (error) {
+          console.error('操作失败:', error);
+          message.error(error instanceof Error ? error.message : '操作失败，请重试');
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
   const handleSubmit = async (values: any) => {
     if (rules.length === 0) {
       message.warning('请至少添加一条满减规则');
@@ -70,7 +127,7 @@ function DiscountRules() {
 
     const [startTime, endTime] = values.timeRange;
     
-    const campaign: DiscountCampaign = {
+    const campaign: Omit<DiscountCampaign, '_id'> = {
       title: values.title,
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
@@ -79,37 +136,20 @@ function DiscountRules() {
 
     setLoading(true);
     try {
-      // 1. 先检查是否存在满减活动
-      const checkResponse = await fetch('/api/discount-rules', {
-        method: 'GET',
-      });
-
-      if (!checkResponse.ok) {
-        throw new Error('检查现有活动失败');
-      }
-
-      const { data: existingCampaigns } = await checkResponse.json();
-      console.log('现有活动:', existingCampaigns); // 调试日志
-
-      // 2. 如果存在活动，先删除现有活动
-      if (existingCampaigns && existingCampaigns.length > 0) {
-        console.log('开始删除现有活动'); // 调试日志
+      if (existingCampaign) {
+        console.log('检测到现有活动，将先删除再创建');
         const deleteResponse = await fetch('/api/discount-rules', {
           method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          }
         });
 
         if (!deleteResponse.ok) {
           const errorData = await deleteResponse.json().catch(() => ({ message: '删除现有活动失败' }));
           throw new Error(errorData.message || '删除现有活动失败');
         }
-        console.log('现有活动删除成功'); // 调试日志
+        console.log('现有活动删除成功');
       }
 
-      // 3. 保存新活动
-      console.log('开始保存新活动'); // 调试日志
+      console.log('开始保存新活动');
       const saveResponse = await fetch('/api/discount-rules', {
         method: 'POST',
         headers: {
@@ -123,10 +163,11 @@ function DiscountRules() {
         throw new Error(errorData.message || '保存失败');
       }
 
-      console.log('新活动保存成功'); // 调试日志
-      message.success('满减活动创建成功');
+      console.log('新活动保存成功');
+      message.success('满减活动已成功设置');
       form.resetFields();
       setRules([]);
+      await fetchCampaign();
     } catch (error) {
       console.error('操作失败:', error);
       message.error(error instanceof Error ? error.message : '操作失败，请重试');
@@ -138,7 +179,41 @@ function DiscountRules() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 pt-6">
-        <Card title="满减活动设置" className="max-w-2xl mx-auto">
+        {fetchLoading ? (
+          <div className="text-center p-10"><Spin size="large" /></div>
+        ) : existingCampaign ? (
+          <Card title="当前活动" className="max-w-2xl mx-auto mb-6">
+            <Title level={4}>{existingCampaign.title}</Title>
+            <p className="mb-2">
+              <Text strong>活动时间: </Text>
+              {dayjs(existingCampaign.startTime).format('YYYY-MM-DD HH:mm:ss')} 至 {dayjs(existingCampaign.endTime).format('YYYY-MM-DD HH:mm:ss')}
+            </p>
+            <div className="mb-4">
+              <Text strong>满减规则:</Text>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {existingCampaign.rules.map((rule, index) => (
+                  <Tag color="processing" key={index}>
+                    满 ¥{rule.totalAmount} 减 ¥{rule.discountAmount}
+                  </Tag>
+                ))}
+              </div>
+            </div>
+            <Button
+              type="primary"
+              danger
+              onClick={handleDeleteCampaign}
+              loading={loading}
+            >
+              删除活动
+            </Button>
+          </Card>
+        ) : (
+           <Card className="max-w-2xl mx-auto mb-6 text-center py-4">
+             <Text type="secondary">当前没有进行中的满减活动。</Text>
+          </Card>
+        )}
+        
+        <Card title={existingCampaign ? "设置新的活动（将替换当前活动）" : "创建满减活动"} className="max-w-2xl mx-auto">
           <Form
             form={form}
             layout="vertical"
@@ -173,50 +248,41 @@ function DiscountRules() {
                     <Button
                       type="text"
                       danger
+                      icon={<DeleteOutlined />}
                       onClick={() => setRules(rules.filter((_, i) => i !== index))}
-                    >
-                      删除
-                    </Button>
+                    />
                   </div>
                 ))}
                 
-                <div className="flex items-center space-x-4">
-                  <span>满</span>
-                  <Input
-                    type="number"
-                    style={{ width: 120 }}
+                <div className="flex items-center space-x-2">
+                  <span className='whitespace-nowrap'>满</span>
+                  <InputNumber
+                    className='flex-1'
                     value={currentRule.totalAmount}
-                    onChange={e => {
-                      const value = Number(e.target.value);
-                      if (value >= 0) {
-                        setCurrentRule({
-                          ...currentRule,
-                          totalAmount: value
-                        });
+                    onChange={value => {
+                      if (value !== null && value >= 0) {
+                        setCurrentRule({ ...currentRule, totalAmount: value });
                       }
                     }}
                     min={0}
                     placeholder="总金额"
+                    addonBefore="¥"
                   />
-                  <span>减</span>
-                  <Input
-                    type="number"
-                    style={{ width: 120 }}
+                  <span className='whitespace-nowrap'>减</span>
+                  <InputNumber
+                    className='flex-1'
                     value={currentRule.discountAmount}
-                    onChange={e => {
-                      const value = Number(e.target.value);
-                      if (value >= 0) {
-                        setCurrentRule({
-                          ...currentRule,
-                          discountAmount: value
-                        });
+                    onChange={value => {
+                       if (value !== null && value >= 0) {
+                        setCurrentRule({ ...currentRule, discountAmount: value });
                       }
                     }}
                     min={0}
                     placeholder="优惠金额"
+                    addonBefore="¥"
                   />
-                  <Button type="primary" onClick={handleAddRule}>
-                    添加规则
+                  <Button type="primary" icon={<PlusOutlined />} onClick={handleAddRule}>
+                    添加
                   </Button>
                 </div>
               </div>
@@ -229,7 +295,7 @@ function DiscountRules() {
                 loading={loading}
                 className="w-full"
               >
-                保存活动
+                {existingCampaign ? "保存并替换活动" : "创建活动"}
               </Button>
             </Form.Item>
           </Form>
