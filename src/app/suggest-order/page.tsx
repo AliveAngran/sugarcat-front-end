@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { checkAuth, getSalespersonId } from '@/utils/auth';
+import { checkAuth } from '@/utils/auth';
 import { pinyin } from 'pinyin-pro';
 import { CATEGORY_NAMES } from '@/constants/categories';
 import { BRAND_MAP } from '@/constants/brands';
+import { salesPersonMap } from '@/constants/salespersons';
 
 // Ant Design Components & Icons
 import { Button, Input, Modal, message, Spin, Tabs, Avatar, Drawer, List, Badge, Empty, Tag, Collapse, Checkbox } from 'antd';
@@ -69,15 +70,15 @@ const SuggestOrderPage = () => {
     // Initial Auth and Data Fetching
     useEffect(() => {
         const auth = checkAuth();
-        if (!auth) {
+        if (!auth.isAuth) {
             router.push('/');
         } else {
             setIsAuthorized(true);
-            fetchInitialData();
+            fetchInitialData(auth.role, auth.id);
         }
     }, [router]);
 
-    const fetchInitialData = async () => {
+    const fetchInitialData = async (role: string | null, id: string | null) => {
         setInitialLoading(true);
         try {
             // Fetch customers and products in parallel
@@ -205,8 +206,8 @@ const SuggestOrderPage = () => {
         }
 
         setSubmitting(true);
-        const salespersonId = getSalespersonId(); // From auth utils
-        if (!salespersonId) {
+        const { id: salespersonId, role } = checkAuth(); // From auth utils
+        if (role !== 'admin' && !salespersonId) { // Admins might not have an ID but can still operate
             message.error('无法获取业务员信息，请重新登录');
             setSubmitting(false);
             return;

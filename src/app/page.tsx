@@ -1,22 +1,36 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MenuSelection from '@/components/MenuSelection';
-import { setAuth } from '@/utils/auth';
+import { setAuth, checkAuth, clearAuth } from '@/utils/auth';
+import { validateAccessKey } from '@/constants/salespersons';
 
 export default function Home() {
   const [accessKey, setAccessKey] = useState<string>("");
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-  const correctAccessKey = "chaodan";
+
+  useEffect(() => {
+    // Check auth status on initial load
+    if (checkAuth().isAuth) {
+      setIsAuthorized(true);
+    }
+  }, []);
 
   const handleAccessKeySubmit = () => {
-    if (accessKey === correctAccessKey) {
+    const user = validateAccessKey(accessKey);
+    if (user) {
+      setAuth(user.role, user.id);
       setIsAuthorized(true);
-      setAuth();
     } else {
       alert("访问密钥错误");
+      setAccessKey("");
     }
   };
+
+  const handleLogout = () => {
+    clearAuth();
+    setIsAuthorized(false);
+  }
 
   if (!isAuthorized) {
     return (
@@ -43,5 +57,5 @@ export default function Home() {
     );
   }
 
-  return <MenuSelection />;
+  return <MenuSelection onLogout={handleLogout} />;
 } 

@@ -1,24 +1,41 @@
 import { useRouter } from 'next/navigation';
-export default function MenuSelection() {
+import { useEffect, useState } from 'react';
+import { checkAuth } from '@/utils/auth';
+
+interface MenuSelectionProps {
+  onLogout: () => void;
+}
+
+export default function MenuSelection({ onLogout }: MenuSelectionProps) {
   const router = useRouter();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUserRole(checkAuth().role);
+  }, []);
   
-  const menuItems = [
-    { title: '数据看板', path: '/dashboard', icon: '📊' },
-    { title: '订单管理', path: '/orders', icon: '📋' },
-    { title: '货品管理', path: '/products', icon: '📦' },
-    { title: '配送规划', path: '/delivery-planning', icon: '🚚' },
-    { title: '店铺管理', path: '/store-management', icon: '🏪' },
-    { title: '抽奖活动', path: '/lucky-draw', icon: '🎉' },
-    { title: '满减活动', path: '/discount-rules', icon: '💰' },
-    { title: '订单建议', path: '/suggest-order', icon: '💰' }
+  const allMenuItems = [
+    { title: '数据看板', path: '/dashboard', icon: '📊', roles: ['admin'] },
+    { title: '订单管理', path: '/orders', icon: '📋', roles: ['admin'] },
+    { title: '货品管理', path: '/products', icon: '📦', roles: ['admin'] },
+    { title: '配送规划', path: '/delivery-planning', icon: '🚚', roles: ['admin'] },
+    { title: '店铺管理', path: '/store-management', icon: '🏪', roles: ['admin'] },
+    { title: '抽奖活动', path: '/lucky-draw', icon: '🎉', roles: ['admin'] },
+    { title: '满减活动', path: '/discount-rules', icon: '💰', roles: ['admin'] },
+    { title: '订单建议', path: '/suggest-order', icon: '💡', roles: ['admin', 'salesperson'] }
   ];
+
+  const menuItems = allMenuItems.filter(item => userRole && item.roles.includes(userRole));
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          管理系统
-        </h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">
+            管理系统
+          </h1>
+          <button onClick={onLogout} className="text-sm text-blue-600 hover:underline">退出登录</button>
+        </div>
         
         <div className="grid gap-4">
           {menuItems.map((item) => (
