@@ -10,6 +10,7 @@ export default function MenuSelection() {
     { title: '店铺管理', path: '/store-management', icon: '🏪' },
     { title: '抽奖活动', path: '/lucky-draw', icon: '🎉' },
     { title: '满减活动', path: '/discount-rules', icon: '💰' },
+    { title: '订单建议', path: '/suggest-order', icon: '💰' }
   ];
 
   return (

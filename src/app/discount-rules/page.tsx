@@ -25,6 +25,7 @@ interface DiscountCampaign {
   startTime: string;
   endTime: string;
   rules: DiscountRule[];
+  
 }
 
 function DiscountRules() {
