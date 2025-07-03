@@ -1,43 +1,4 @@
-// export const CATEGORY_MAPPING = {
-//   0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 14: 9,
-//   9: 10, 10: 11, 15: 12, 17: 13, 16: 14, 11: 15, 12: 16, 13: 18, 18: 17,
-//   19: 19, 20: 20, 21: 21, 22: 22, 23: 23
-// } as const;
-
-// export const CATEGORY_NAMES = {
-//   0: '每月新品',
-//   1: '前台糖果',
-//   2: '巧克力',
-//   3: '缤纷糖果',
-//   4: '儿童糖玩',
-//   5: '饼干糕点',
-//   6: '肉干肉脯',
-//   7: '麻辣素食',
-//   8: '蜜饯果干',
-//   9: '海苔类',
-//   10: '膨化食品',
-//   11: '散装食品',
-//   12: '熟食卤味',
-//   13: '礼盒类',
-//   14: '其他休食',
-//   15: '1元2元区',
-//   16: '饮品类',
-//   17: '咖啡冲调',
-//   18: '特价专区',
-//   19: '果冻布丁',
-//   20: '方便速食',
-//   21: '日用百货',
-//   22: '一次性用品',
-//   23: '卡游'
-// } as const;
-
-// // 获取反向映射的函数
-// export const getOriginalCategory = (mappedCategory: number): number => {
-//   return Object.entries(CATEGORY_MAPPING).find(
-//     ([_, value]) => value === mappedCategory
-//   )?.[0] as unknown as number || mappedCategory;
-// };
-// 所有分类的权威源数据
+// 所有分类的权威源数据（id: 原始ID, order: 排序ID）
 export const ALL_CATEGORIES = [
   { name: '每月新品', id: 0, order: 0 },
   { name: '前台糖果', id: 1, order: 1 },
@@ -51,11 +12,7 @@ export const ALL_CATEGORIES = [
   { name: '海苔类', id: 9, order: 9 },
   { name: '膨化食品', id: 10, order: 10 },
   { name: '散装食品', id: 11, order: 11 },
-
-  // 新增项
   { name: '单个面包', id: 30, order: 12 },
-
-  // 原来 order >= 12 的项，order 全部 +1
   { name: '熟食卤味', id: 12, order: 13 },
   { name: '礼盒类', id: 13, order: 14 },
   { name: '其他休食', id: 14, order: 15 },
@@ -76,29 +33,32 @@ export const ALL_CATEGORIES = [
   { name: '地推商品', id: 29, order: 30 },
 ] as const;
 
- 
- // 根据 ALL_CATEGORIES 自动生成 CATEGORY_MAPPING
- // 格式: { [原始ID: number]: 排序ID: number }
- export const CATEGORY_MAPPING = Object.fromEntries(
-   ALL_CATEGORIES.map(c => [c.id, c.order])
- ) as { [key: number]: number };
- 
- // 根据 ALL_CATEGORIES 自动生成 CATEGORY_NAMES
- // 格式: { [排序ID: number]: 名称: string }
- export const CATEGORY_NAMES = Object.fromEntries(
-   ALL_CATEGORIES.map(c => [c.order, c.name])
- ) as { [key: number]: string };
- 
- // 创建一个反向映射以便高效查找
- const REVERSE_CATEGORY_MAPPING = Object.fromEntries(
-   Object.entries(CATEGORY_MAPPING).map(([key, value]) => [value, Number(key)])
- ) as { [key: number]: number };
- 
- /**
-  * 根据映射后的 category ID 获取原始的 ID。
-  * @param mappedCategory - 映射后的 category ID (即 order)
-  * @returns 原始的 category ID
-  */
- export const getOriginalCategory = (mappedCategory: number): number => {
-   return REVERSE_CATEGORY_MAPPING[mappedCategory] ?? mappedCategory;
- };
+// 原始ID => 排序ID 映射
+export const CATEGORY_MAPPING = Object.fromEntries(
+  ALL_CATEGORIES.map(c => [c.id, c.order])
+) as { [key: number]: number };
+
+// 排序ID => 分类名称 映射
+export const CATEGORY_NAMES = Object.fromEntries(
+  ALL_CATEGORIES.map(c => [c.id, c.name])
+) as { [key: number]: string };
+
+/**
+ * 根据原始 category ID 获取映射后的排序 ID（order）
+ * @param originalId - 原始的分类 ID（例如：0, 1, 2...）
+ * @returns 映射后的排序 ID（例如：0, 1, 2...）
+ */
+export const getMappedCategory = (originalId: number): number => {
+  const category = ALL_CATEGORIES.find(c => c.id === originalId);
+  return category?.order ?? originalId;
+};
+
+/**
+ * 根据映射后的排序 ID（order）获取原始的 category ID
+ * @param mappedCategory - 排序 ID（例如：0, 1, 2...）
+ * @returns 原始的分类 ID（例如：0, 1, 2...）
+ */
+export const getOriginalCategory = (mappedCategory: number): number => {
+  const category = ALL_CATEGORIES.find(c => c.order === mappedCategory);
+  return category?.id ?? mappedCategory;
+};
