@@ -32,7 +32,7 @@ const generateLoginKey = (id: string, name: string): string => {
 // Validates an access key and returns user info if successful
 export const validateAccessKey = (key: string): { role: 'admin' | 'salesperson'; id: string | null } | null => {
   // Admin check
-  if (key === 'chaodan') {
+  if (key === 'chaodan2025') {
     return { role: 'admin', id: 'admin' };
   }
 
