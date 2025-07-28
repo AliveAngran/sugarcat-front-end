@@ -1145,7 +1145,6 @@ function OrderList() {
 export default function Page() {
   return (
     <>
-      <NavBar />
       <OrderList />
     </>
   );

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   try {
     const db = cloudbase.database();
     const _ = db.command;
-    const limit = 200; // 固定查询最近 200 条
+    const limit = 300; // 固定查询最近 300 条
     
     console.log(`[Orders API] Fetching latest ${limit} orders...`);
     
