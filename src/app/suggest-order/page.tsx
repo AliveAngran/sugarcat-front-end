@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { checkAuth } from "@/utils/auth";
@@ -32,6 +32,7 @@ import {
   MinusOutlined,
   FunnelPlotOutlined,
   QrcodeOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 
 // Dynamically import the BarcodeScanner to avoid SSR issues with camera access
@@ -64,6 +65,7 @@ interface Customer {
   userStoreNameLiankai?: string;
   salesPerson: string;
   userAvatar?: string;
+  canPlaceOrder?: boolean; // 新增：可代下状态
 }
 
 interface CartItem {
@@ -106,6 +108,9 @@ const SuggestOrderPage = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
+
+  // --- Refs for focus management ---
+  const searchInputRef = useRef<any>(null);
 
   // Initial Auth and Data Fetching
   useEffect(() => {
@@ -248,6 +253,21 @@ const SuggestOrderPage = () => {
     message.success(`扫码成功: ${result}`);
     setProductSearchTerm(result);
     setIsScannerOpen(false);
+    // 扫码成功后自动聚焦到搜索框，方便继续操作
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100);
+  };
+
+  // 新增：清除搜索内容的处理函数
+  const handleClearSearch = () => {
+    setProductSearchTerm("");
+    // 添加轻微的视觉反馈
+    message.success("已清除");
+    // 清除后立即聚焦到搜索框，准备下一次扫码或输入
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100);
   };
 
   const handleSubmit = async () => {
@@ -312,10 +332,10 @@ const SuggestOrderPage = () => {
   };
 
   // --- Memoized Calculations & Filters ---
-  // 按业务员分组客户
+  // 按业务员分组客户 - 只包含可代下的客户
   const customersBySalesperson = useMemo(() => {
     const validCustomers = customers.filter(
-      (c) => c.salesPerson && c.salesPerson.trim() !== ""
+      (c) => c.salesPerson && c.salesPerson.trim() !== "" && c.canPlaceOrder === true
     );
     
     const grouped: Record<string, Customer[]> = {};
@@ -345,12 +365,12 @@ const SuggestOrderPage = () => {
     let customersToFilter: Customer[] = [];
     
     if (selectedSalesperson) {
-      // 如果选择了业务员，只显示该业务员的客户
+      // 如果选择了业务员，只显示该业务员的可代下客户
       customersToFilter = customersBySalesperson[selectedSalesperson] || [];
     } else {
-      // 如果没有选择业务员，显示所有有效客户
+      // 如果没有选择业务员，显示所有可代下的有效客户
       customersToFilter = customers.filter(
-        (c) => c.salesPerson && c.salesPerson.trim() !== ""
+        (c) => c.salesPerson && c.salesPerson.trim() !== "" && c.canPlaceOrder === true
       );
     }
 
@@ -499,12 +519,37 @@ const SuggestOrderPage = () => {
         </Button>
         <div className="flex items-center gap-2">
           <Input
+            ref={searchInputRef}
             placeholder="搜索或扫码查找商品"
             prefix={<SearchOutlined />}
+            suffix={
+              productSearchTerm ? (
+                <Button
+                  type="text"
+                  icon={<CloseOutlined />}
+                  onClick={handleClearSearch}
+                  size="small"
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  style={{ 
+                    border: 'none', 
+                    boxShadow: 'none',
+                    minWidth: 'auto',
+                    width: '20px',
+                    height: '20px',
+                    padding: 0
+                  }}
+                  aria-label="清除搜索"
+                />
+              ) : null
+            }
             value={productSearchTerm}
             onChange={(e) => setProductSearchTerm(e.target.value)}
             size="large"
             className="flex-1"
+            onPressEnter={() => {
+              // 按回车键时也聚焦到搜索框，方便连续扫码
+              searchInputRef.current?.focus();
+            }}
           />
           <Button
             icon={<QrcodeOutlined />}

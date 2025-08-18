@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Form, Input, Modal, Button, Table, message } from 'antd';
+import { Form, Input, Modal, Button, Table, message, Switch } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { CloudUploadOutlined, EditOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
@@ -19,6 +19,7 @@ interface Store {
   userStoreAddress?: string;
   userStorePhone?: string;
   hasOrdered?: boolean;
+  canPlaceOrder?: boolean; // 新增：可代下状态
 }
 
 const salesPersonMap = {
@@ -172,6 +173,39 @@ const StoreManagementPage: React.FC = () => {
     }
   };
 
+  // 新增：处理可代下状态切换
+  const handleCanPlaceOrderToggle = async (store: Store, checked: boolean) => {
+    try {
+      const response = await fetch('/api/users/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: store._openid,
+          canPlaceOrder: checked,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        message.success(`已${checked ? '启用' : '禁用'}代下功能`);
+        // 更新本地状态
+        setStores(prevStores => 
+          prevStores.map(s => 
+            s._openid === store._openid 
+              ? { ...s, canPlaceOrder: checked }
+              : s
+          )
+        );
+      } else {
+        message.error('更新失败');
+      }
+    } catch (error) {
+      message.error('更新失败');
+    }
+  };
+
   // 过滤数据
   const filteredStores = stores.filter((store) => {
     if (!searchText) return true;
@@ -288,6 +322,30 @@ const StoreManagementPage: React.FC = () => {
           return record.hasOrdered === false || record.hasOrdered === undefined;
         }
         return record.hasOrdered === value;
+      },
+    },
+    {
+      title: '可代下',
+      dataIndex: 'canPlaceOrder',
+      key: 'canPlaceOrder',
+      width: 100,
+      render: (canPlaceOrder: boolean | undefined, record: Store) => (
+        <Switch
+          checked={canPlaceOrder === true}
+          onChange={(checked) => handleCanPlaceOrderToggle(record, checked)}
+          checkedChildren="可代下"
+          unCheckedChildren="不可代下"
+        />
+      ),
+      filters: [
+        { text: '可代下', value: true },
+        { text: '不可代下', value: false },
+      ],
+      onFilter: (value: React.Key | boolean, record: Store) => {
+        if (value === false) {
+          return record.canPlaceOrder === false || record.canPlaceOrder === undefined;
+        }
+        return record.canPlaceOrder === value;
       },
     },
     {

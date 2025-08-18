@@ -6,7 +6,7 @@ export const revalidate = 0;
 
 export async function PUT(request: Request) {
   try {
-    const { userId, userStoreName, userStoreNameLiankai, salesPerson, phoneNumber } = await request.json();
+    const { userId, userStoreName, userStoreNameLiankai, salesPerson, phoneNumber, canPlaceOrder } = await request.json();
 
     if (!userId) {
       return NextResponse.json(
@@ -17,19 +17,24 @@ export async function PUT(request: Request) {
 
     const db = cloudbase.database();
 
+    // 构建更新对象，只包含提供的字段
+    const updateData: any = {
+      updateTime: new Date()
+    };
+
+    if (userStoreName !== undefined) updateData.userStoreName = userStoreName;
+    if (userStoreNameLiankai !== undefined) updateData.userStoreNameLiankai = userStoreNameLiankai;
+    if (salesPerson !== undefined) updateData.salesPerson = salesPerson;
+    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+    if (canPlaceOrder !== undefined) updateData.canPlaceOrder = canPlaceOrder;
+
     // 更新用户信息
     const userUpdate = await db
       .collection("users")
       .where({
         _openid: userId
       })
-      .update({
-        userStoreName,
-        userStoreNameLiankai,
-        salesPerson,
-        phoneNumber,
-        updateTime: new Date()
-      });
+      .update(updateData);
 
     return NextResponse.json({ success: true });
   } catch (error) {
