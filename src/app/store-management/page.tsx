@@ -1,13 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Form, Input, Modal, Button, Table, message, Switch } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import { CloudUploadOutlined, EditOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
-import { useRouter, usePathname } from 'next/navigation';
-import NavBar from '@/components/NavBar';
-import React from 'react';
-import * as XLSX from 'xlsx';
+import { useState, useEffect } from "react";
+import { Form, Input, Modal, Button, Table, message, Switch } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import {
+  CloudUploadOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+} from "@ant-design/icons";
+import { useRouter, usePathname } from "next/navigation";
+import NavBar from "@/components/NavBar";
+import React from "react";
+import * as XLSX from "xlsx";
 
 interface Store {
   _openid: string;
@@ -23,26 +28,26 @@ interface Store {
 }
 
 const salesPersonMap = {
-  847392: '张倩倩',
-  156234: '赵志忠',
-  739481: '魏经选',
-  628451: '李傲然',
-  394756: '李兵',
-  582647: '刘飞',
-  916374: '赵智国',
-  473819: '陈华',
-  285946: '纪中乐',
-  647193: '李伟斌',
-  528461: '王亮亮',
-  374851: '王从洁',
-  194627: '王俊男',
-  836492: '杨晓',
-  729384: '杨雪峰',
-  463728: '王盼盼',
-  591837: '杨春红',
-  313049: '陈俊辉',
-  497192: '张世虎',
-  897979: '姚雨轩',
+  847392: "张倩倩",
+  156234: "赵志忠",
+  739481: "魏经选",
+  628451: "李傲然",
+  394756: "李兵",
+  582647: "刘飞",
+  916374: "赵智国",
+  473819: "陈华",
+  285946: "纪中乐",
+  647193: "李伟斌",
+  528461: "王亮亮",
+  374851: "王从洁",
+  194627: "王俊男",
+  836492: "杨晓",
+  729384: "杨雪峰",
+  463728: "王盼盼",
+  591837: "杨春红",
+  313049: "陈俊辉",
+  497192: "张世虎",
+  897979: "姚雨轩",
 };
 
 const StoreManagementPage: React.FC = () => {
@@ -50,14 +55,14 @@ const StoreManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
   const [form] = Form.useForm();
   const [isUpdatingOrderStatus, setIsUpdatingOrderStatus] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   // 获取店铺列表 - 修改为循环获取，最多 5000 条
   const fetchStores = async () => {
-      setLoading(true);
+    setLoading(true);
     let allStores: Store[] = [];
     let skip = 0;
     const limit = 1000; // 每次获取的数量
@@ -67,42 +72,54 @@ const StoreManagementPage: React.FC = () => {
       while (true) {
         // 增加总数限制检查
         if (allStores.length >= maxStores) {
-          console.log(`Reached max store limit of ${maxStores}. Stopping fetch.`);
+          console.log(
+            `Reached max store limit of ${maxStores}. Stopping fetch.`
+          );
           break;
         }
 
         console.log(`Fetching stores: skip=${skip}, limit=${limit}`);
         const response = await fetch(`/api/users?limit=${limit}&skip=${skip}`);
-      const data = await response.json();
+        const data = await response.json();
 
         if (data.success && data.data) {
           const fetchedCount = data.data.length;
           // 计算还能添加多少店铺以不超过 maxStores
           const remainingSpace = maxStores - allStores.length;
-          const storesToAdd = fetchedCount > remainingSpace ? data.data.slice(0, remainingSpace) : data.data;
-          
+          const storesToAdd =
+            fetchedCount > remainingSpace
+              ? data.data.slice(0, remainingSpace)
+              : data.data;
+
           allStores = allStores.concat(storesToAdd);
-          console.log(`Fetched ${fetchedCount} stores (added ${storesToAdd.length}), total now: ${allStores.length}`);
-          
+          console.log(
+            `Fetched ${fetchedCount} stores (added ${storesToAdd.length}), total now: ${allStores.length}`
+          );
+
           // 如果实际获取的数量小于请求的数量，说明是最后一页
           if (fetchedCount < limit) {
-            console.log('Last page reached.');
+            console.log("Last page reached.");
             break;
           }
-          
+
           // 准备下一次请求
           skip += limit;
-      } else {
-          message.error('获取店铺列表时出错：' + (data.error || '未知错误'));
-          console.error('API Error:', data);
+        } else {
+          message.error("获取店铺列表时出错：" + (data.error || "未知错误"));
+          console.error("API Error:", data);
           break; // 出错时停止循环
         }
       }
       setStores(allStores);
-      console.log(`Finished fetching stores. Total loaded: ${allStores.length}`);
+      console.log(
+        `Finished fetching stores. Total loaded: ${allStores.length}`
+      );
     } catch (error) {
-      message.error('获取店铺列表失败: ' + (error instanceof Error ? error.message : '网络错误'));
-      console.error('Network or parsing Error:', error);
+      message.error(
+        "获取店铺列表失败: " +
+          (error instanceof Error ? error.message : "网络错误")
+      );
+      console.error("Network or parsing Error:", error);
     } finally {
       setLoading(false);
     }
@@ -124,10 +141,10 @@ const StoreManagementPage: React.FC = () => {
     try {
       if (!editingStore) return;
 
-      const response = await fetch('/api/users/update', {
-        method: 'PUT',
+      const response = await fetch("/api/users/update", {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userId: editingStore._openid,
@@ -137,14 +154,14 @@ const StoreManagementPage: React.FC = () => {
 
       const data = await response.json();
       if (data.success) {
-        message.success('更新成功');
+        message.success("更新成功");
         setEditModalVisible(false);
         fetchStores();
       } else {
-        message.error('更新失败');
+        message.error("更新失败");
       }
     } catch (error) {
-      message.error('更新失败');
+      message.error("更新失败");
     }
   };
 
@@ -152,22 +169,25 @@ const StoreManagementPage: React.FC = () => {
   const handleUpdateOrderedStatus = async () => {
     setIsUpdatingOrderStatus(true);
     try {
-      const response = await fetch('/api/users/mark-ordered-status', {
-        method: 'POST',
+      const response = await fetch("/api/users/mark-ordered-status", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
       const result = await response.json();
       if (result.success) {
         message.success(`成功更新 ${result.updatedCount} 个店铺的下单状态。`);
         // 可以选择重新获取店铺数据以在界面上反映变化
-        // fetchStores(); 
+        // fetchStores();
       } else {
-        message.error('更新下单状态失败: ' + (result.error || '未知错误'));
+        message.error("更新下单状态失败: " + (result.error || "未知错误"));
       }
     } catch (error) {
-      message.error('更新下单状态操作失败: ' + (error instanceof Error ? error.message : '网络错误'));
+      message.error(
+        "更新下单状态操作失败: " +
+          (error instanceof Error ? error.message : "网络错误")
+      );
     } finally {
       setIsUpdatingOrderStatus(false);
     }
@@ -176,10 +196,10 @@ const StoreManagementPage: React.FC = () => {
   // 新增：处理可代下状态切换
   const handleCanPlaceOrderToggle = async (store: Store, checked: boolean) => {
     try {
-      const response = await fetch('/api/users/update', {
-        method: 'PUT',
+      const response = await fetch("/api/users/update", {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userId: store._openid,
@@ -189,20 +209,18 @@ const StoreManagementPage: React.FC = () => {
 
       const data = await response.json();
       if (data.success) {
-        message.success(`已${checked ? '启用' : '禁用'}代下功能`);
+        message.success(`已${checked ? "启用" : "禁用"}代下功能`);
         // 更新本地状态
-        setStores(prevStores => 
-          prevStores.map(s => 
-            s._openid === store._openid 
-              ? { ...s, canPlaceOrder: checked }
-              : s
+        setStores((prevStores) =>
+          prevStores.map((s) =>
+            s._openid === store._openid ? { ...s, canPlaceOrder: checked } : s
           )
         );
       } else {
-        message.error('更新失败');
+        message.error("更新失败");
       }
     } catch (error) {
-      message.error('更新失败');
+      message.error("更新失败");
     }
   };
 
@@ -223,34 +241,44 @@ const StoreManagementPage: React.FC = () => {
   // 新增：导出 Excel 的函数
   const handleExportExcel = () => {
     if (filteredStores.length === 0) {
-      message.warning('没有可导出的数据');
+      message.warning("没有可导出的数据");
       return;
     }
     setIsExporting(true);
     try {
       // 定义表头顺序和中文名 (可以根据需要调整)
       const header = {
-        userStoreName: '店铺名称',
-        userStoreNameLiankai: '连凯店铺名称',
-        salesPerson: '业务员',
-        phoneNumber: '联系电话',
-        userStoreAddress: '店铺地址',
-        userStorePhone: '店铺电话',
-        createTime: '创建时间',
-        hasOrdered: '是否下单',
-        _openid: '用户OpenID' // 如果需要导出 openid
+        userStoreName: "店铺名称",
+        userStoreNameLiankai: "连凯店铺名称",
+        salesPerson: "业务员",
+        phoneNumber: "联系电话",
+        userStoreAddress: "店铺地址",
+        userStorePhone: "店铺电话",
+        createTime: "创建时间",
+        hasOrdered: "是否下单",
+        _openid: "用户OpenID", // 如果需要导出 openid
       };
 
       // 准备导出的数据，只包含表头中定义的字段，并按表头顺序排列
-      const dataToExport = filteredStores.map(store => {
+      const dataToExport = filteredStores.map((store) => {
         const row: any = {};
         for (const key in header) {
-          if (key === 'hasOrdered') {
-            row[(header as any)[key]] = store.hasOrdered === true ? '是' : (store.hasOrdered === false ? '否' : '未知');
-          } else if (key === 'createTime') {
-            row[(header as any)[key]] = store.createTime ? new Date(store.createTime).toLocaleString() : '';
+          if (key === "hasOrdered") {
+            row[(header as any)[key]] =
+              store.hasOrdered === true
+                ? "是"
+                : store.hasOrdered === false
+                ? "否"
+                : "未知";
+          } else if (key === "createTime") {
+            row[(header as any)[key]] = store.createTime
+              ? new Date(store.createTime).toLocaleString()
+              : "";
           } else {
-            row[(header as any)[key]] = (store as any)[key] !== undefined && (store as any)[key] !== null ? String((store as any)[key]) : '';
+            row[(header as any)[key]] =
+              (store as any)[key] !== undefined && (store as any)[key] !== null
+                ? String((store as any)[key])
+                : "";
           }
         }
         return row;
@@ -261,12 +289,14 @@ const StoreManagementPage: React.FC = () => {
       XLSX.utils.book_append_sheet(workbook, worksheet, "店铺列表");
 
       // 生成 Excel 文件并下载
-      const fileName = `店铺列表_${new Date().toISOString().slice(0,10)}.xlsx`;
+      const fileName = `店铺列表_${new Date().toISOString().slice(0, 10)}.xlsx`;
       XLSX.writeFile(workbook, fileName);
-      message.success(`成功导出 ${filteredStores.length} 条店铺数据到 ${fileName}`);
+      message.success(
+        `成功导出 ${filteredStores.length} 条店铺数据到 ${fileName}`
+      );
     } catch (error) {
-      console.error('导出 Excel 失败:', error);
-      message.error('导出 Excel 失败');
+      console.error("导出 Excel 失败:", error);
+      message.error("导出 Excel 失败");
     } finally {
       setIsExporting(false);
     }
@@ -274,48 +304,50 @@ const StoreManagementPage: React.FC = () => {
 
   const columns: ColumnsType<Store> = [
     {
-      title: '店铺名称',
-      dataIndex: 'userStoreName',
-      key: 'userStoreName',
+      title: "店铺名称",
+      dataIndex: "userStoreName",
+      key: "userStoreName",
     },
     {
-      title: '连凯店铺名称',
-      dataIndex: 'userStoreNameLiankai',
-      key: 'userStoreNameLiankai',
+      title: "连凯店铺名称",
+      dataIndex: "userStoreNameLiankai",
+      key: "userStoreNameLiankai",
     },
     {
-      title: '业务员',
-      dataIndex: 'salesPerson',
-      key: 'salesPerson',
+      title: "业务员",
+      dataIndex: "salesPerson",
+      key: "salesPerson",
       filters: Object.entries(salesPersonMap).map(([_, name]) => ({
         text: name,
         value: name,
       })),
-      onFilter: (value: React.Key | boolean, record: Store) => record.salesPerson === value,
+      onFilter: (value: React.Key | boolean, record: Store) =>
+        record.salesPerson === value,
     },
     {
-      title: '联系电话',
-      dataIndex: 'phoneNumber',
-      key: 'phoneNumber',
+      title: "联系电话",
+      dataIndex: "phoneNumber",
+      key: "phoneNumber",
     },
     {
-      title: '创建时间',
-      dataIndex: 'createTime',
-      key: 'createTime',
+      title: "创建时间",
+      dataIndex: "createTime",
+      key: "createTime",
       render: (text: string) => new Date(text).toLocaleString(),
     },
     {
-      title: '是否下单',
-      dataIndex: 'hasOrdered',
-      key: 'hasOrdered',
-      render: (hasOrdered?: boolean) => (
-        hasOrdered === true ? 
-          <span style={{ color: 'green', fontWeight: 'bold' }}>是</span> :
-          <span style={{ color: 'red' }}>否</span>
-      ),
+      title: "是否下单",
+      dataIndex: "hasOrdered",
+      key: "hasOrdered",
+      render: (hasOrdered?: boolean) =>
+        hasOrdered === true ? (
+          <span style={{ color: "green", fontWeight: "bold" }}>是</span>
+        ) : (
+          <span style={{ color: "red" }}>否</span>
+        ),
       filters: [
-        { text: '已下单', value: true },
-        { text: '未下单', value: false },
+        { text: "已下单", value: true },
+        { text: "未下单", value: false },
       ],
       onFilter: (value: React.Key | boolean, record: Store) => {
         if (value === false) {
@@ -325,9 +357,9 @@ const StoreManagementPage: React.FC = () => {
       },
     },
     {
-      title: '可代下',
-      dataIndex: 'canPlaceOrder',
-      key: 'canPlaceOrder',
+      title: "可代下",
+      dataIndex: "canPlaceOrder",
+      key: "canPlaceOrder",
       width: 100,
       render: (canPlaceOrder: boolean | undefined, record: Store) => (
         <Switch
@@ -338,19 +370,21 @@ const StoreManagementPage: React.FC = () => {
         />
       ),
       filters: [
-        { text: '可代下', value: true },
-        { text: '不可代下', value: false },
+        { text: "可代下", value: true },
+        { text: "不可代下", value: false },
       ],
       onFilter: (value: React.Key | boolean, record: Store) => {
         if (value === false) {
-          return record.canPlaceOrder === false || record.canPlaceOrder === undefined;
+          return (
+            record.canPlaceOrder === false || record.canPlaceOrder === undefined
+          );
         }
         return record.canPlaceOrder === value;
       },
     },
     {
-      title: '操作',
-      key: 'action',
+      title: "操作",
+      key: "action",
       render: (_: unknown, record: Store) => (
         <Button type="link" onClick={() => handleEdit(record)}>
           编辑
@@ -362,13 +396,19 @@ const StoreManagementPage: React.FC = () => {
   return (
     <div className="p-6">
       <div className="mb-4 flex justify-between items-center">
-          <Input.Search
+        <Input.Search
           placeholder="搜索店铺名称、连凯名称、业务员、地址或电话"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
           style={{ width: 400 }}
-          />
+        />
         <div className="flex space-x-2">
+          <Button
+            onClick={handleUpdateOrderedStatus}
+            loading={isUpdatingOrderStatus}
+          >
+            更新下单状态
+          </Button>
           <Button
             type="primary"
             onClick={handleExportExcel}
@@ -378,19 +418,19 @@ const StoreManagementPage: React.FC = () => {
             导出 Excel
           </Button>
         </div>
-        </div>
-        <Table
-          columns={columns}
-          dataSource={filteredStores}
-          rowKey="_openid"
-          loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-          }}
-        />
+      </div>
+      <Table
+        columns={columns}
+        dataSource={filteredStores}
+        rowKey="_openid"
+        loading={loading}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total) => `共 ${total} 条`,
+        }}
+      />
 
       <Modal
         title="编辑店铺信息"
@@ -398,42 +438,30 @@ const StoreManagementPage: React.FC = () => {
         onCancel={() => setEditModalVisible(false)}
         footer={null}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSave}
-        >
+        <Form form={form} layout="vertical" onFinish={handleSave}>
           <Form.Item
             label="店铺名称"
             name="userStoreName"
-            rules={[{ required: true, message: '请输入店铺名称' }]}
+            rules={[{ required: true, message: "请输入店铺名称" }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item
-            label="连凯店铺名称"
-            name="userStoreNameLiankai"
-          >
+          <Form.Item label="连凯店铺名称" name="userStoreNameLiankai">
             <Input />
           </Form.Item>
           <Form.Item
             label="业务员"
             name="salesPerson"
-            rules={[{ required: true, message: '请输入业务员' }]}
+            rules={[{ required: true, message: "请输入业务员" }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item
-            label="联系电话"
-            name="phoneNumber"
-          >
+          <Form.Item label="联系电话" name="phoneNumber">
             <Input />
           </Form.Item>
           <Form.Item>
             <div className="flex justify-end space-x-4">
-              <Button onClick={() => setEditModalVisible(false)}>
-                取消
-              </Button>
+              <Button onClick={() => setEditModalVisible(false)}>取消</Button>
               <Button type="primary" htmlType="submit">
                 保存
               </Button>
@@ -452,4 +480,4 @@ export default function Page() {
       <StoreManagementPage />
     </>
   );
-} 
+}
