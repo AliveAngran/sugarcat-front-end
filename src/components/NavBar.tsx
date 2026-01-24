@@ -12,8 +12,10 @@ export default function NavBar() {
   // 主导航菜单项
   const menuItems = [
     { title: '数据看板', path: '/dashboard', icon: '📊' },
+    { title: '趋势分析', path: '/trends', icon: '📈' },
     { title: '订单管理', path: '/orders', icon: '📋' },
     { title: '货品管理', path: '/products', icon: '📦' },
+    { title: '商品管理', path: '/products-v2', icon: '🏷️' },
     { title: '配送规划', path: '/delivery-planning', icon: '🚚' },
     { title: '店铺管理', path: '/store-management', icon: '🏪' },
     { title: '抽奖活动', path: '/lucky-draw', icon: '🎉' },

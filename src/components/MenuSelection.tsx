@@ -16,8 +16,10 @@ export default function MenuSelection({ onLogout }: MenuSelectionProps) {
   
   const allMenuItems = [
     { title: '数据看板', path: '/dashboard', icon: '📊', roles: ['admin'] },
+    { title: '趋势分析', path: '/trends', icon: '📈', roles: ['admin'] },
     { title: '订单管理', path: '/orders', icon: '📋', roles: ['admin'] },
     { title: '货品管理', path: '/products', icon: '📦', roles: ['admin'] },
+    { title: '商品管理', path: '/products-v2', icon: '🏷️', roles: ['admin'] },
     { title: '配送规划', path: '/delivery-planning', icon: '🚚', roles: ['admin'] },
     { title: '店铺管理', path: '/store-management', icon: '🏪', roles: ['admin'] },
     { title: '抽奖活动', path: '/lucky-draw', icon: '🎉', roles: ['admin'] },

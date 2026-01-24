@@ -20,8 +20,14 @@ def extract_spuId_title(file_path, output_path):
     with open(output_path, 'w', encoding='utf-8') as outfile:
         json.dump(results, outfile, ensure_ascii=False, indent=4)
 
-# 使用文件的实际路径
+# 使用相对路径
+import os
+
+# 获取脚本所在目录的父目录（项目根目录）
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(script_dir)
+
 extract_spuId_title(
-    '/Users/arz/Downloads/PanDownload/微信小程序开发/小程序管理前端/sugarcat-front-end/src/utils/spudb1119.json',
-    '/Users/arz/Downloads/PanDownload/微信小程序开发/小程序管理前端/sugarcat-front-end/src/utils/spuId_title.json'
+    os.path.join(project_root, 'src/utils/spudb1119.json'),
+    os.path.join(project_root, 'src/utils/spuId_title.json')
 )
